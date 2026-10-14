@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <radialGradient id="paperBg" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#FAF5EC" />
+      <stop offset="100%" stop-color="#EBE3D3" />
+    </radialGradient>
+    <linearGradient id="ribbonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D44B30" />
+      <stop offset="50%" stop-color="#B2412A" />
+      <stop offset="100%" stop-color="#8F2E19" />
+    </linearGradient>
+    <filter id="ribbonShadow" x="-10%" y="-10%" width="125%" height="125%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#542B20" flood-opacity="0.25" />
+    </filter>
+  </defs>
+
+  <!-- Warm Paper Canvas Icon Base -->
+  <rect width="1024" height="1024" rx="228" fill="url(#paperBg)" />
+
+  <!-- Subtle Hairline Inner Border -->
+  <rect x="44" y="44" width="936" height="936" rx="192" fill="none" stroke="#1C1917" stroke-width="2" stroke-opacity="0.08" />
+
+  <!-- Central Emblem: The Red Knot of Memory (Gift bow + Forget-me-not string) -->
+  <g filter="url(#ribbonShadow)">
+    <!-- Main Loop (Top-left loop) -->
+    <path d="M 512 430 C 430 310, 310 320, 270 410 C 230 500, 310 590, 420 570 C 480 560, 500 520, 512 480 Z" 
+          fill="url(#ribbonGrad)" />
+
+    <!-- Secondary Loop (Top-right loop) -->
+    <path d="M 512 430 C 594 310, 714 320, 754 410 C 794 500, 714 590, 604 570 C 544 560, 524 520, 512 480 Z" 
+          fill="url(#ribbonGrad)" opacity="0.95" />
+
+    <!-- Left Ribbon Tail -->
+    <path d="M 480 500 C 440 600, 380 690, 330 760 L 375 780 C 425 700, 480 620, 512 530 Z" 
+          fill="#9C3520" />
+
+    <!-- Right Ribbon Tail -->
+    <path d="M 544 500 C 584 600, 644 690, 694 760 L 649 780 C 599 700, 544 620, 512 530 Z" 
+          fill="#822814" />
+
+    <!-- Knot Core (The focal bind) -->
+    <ellipse cx="512" cy="495" rx="55" ry="46" fill="#C7452B" />
+    <ellipse cx="512" cy="492" rx="42" ry="34" fill="#E25B3E" opacity="0.75" />
+  </g>
+
+  <!-- Astrological Accent: 4-Point Gold/Ink Star above Knot -->
+  <g fill="#1C1917">
+    <path d="M 512 210 Q 512 240 528 250 Q 512 260 512 290 Q 512 260 496 250 Q 512 240 512 210 Z" />
+  </g>
+
+  <!-- Minimal Brand Typo: OSIF at Bottom -->
+  <text x="512" y="865" 
+        font-family="Georgia, serif" 
+        font-size="34" 
+        font-weight="bold" 
+        letter-spacing="14" 
+        text-anchor="middle" 
+        fill="#1C1917" 
+        opacity="0.85">OSIF</text>
+</svg>

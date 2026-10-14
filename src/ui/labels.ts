@@ -1,5 +1,11 @@
 import * as Localization from 'expo-localization';
-import { GiftTagType, PriorityTier } from '../types/index';
+import { EventType, GiftStatus, GiftTagType, PriorityTier } from '../types/index';
+
+export const GIFT_STATUS_LABEL: Record<GiftStatus, string> = {
+  not_started: 'Başlanmadı',
+  searching: 'Araştırılıyor',
+  ready: 'Hazır',
+};
 
 export const TIER_LABEL: Record<PriorityTier, string> = {
   1: 'En yakın',
@@ -451,4 +457,102 @@ export const getComposerPlaceholder = (type: GiftTagType, name?: string): string
       return 'Yeni bir not…';
   }
 };
+
+export interface NotificationContentOptions {
+  name: string;
+  giftStatus: GiftStatus;
+  daysUntilNextBirthday?: number | null;
+  clothingSize?: string | null;
+  shoeSize?: string | null;
+  likes?: string[];
+  wishlist?: string[];
+  eventType?: EventType;
+  buyGift?: number; // 1 = Hediye takibi açık, 0 = Yalnızca doğum günü hatırlatması
+}
+
+/**
+ * Bildirim başlık ve gövde metinlerini insan diline uygun, şık ve Türkçe olarak üretir.
+ * Emojisiz, sade ve profesyoneldir.
+ * Eğer hediye takibi kapalıysa (buyGift === 0), hediye ve beden bilgisi tamamen gizlenir.
+ */
+export function buildNotificationContent(options: NotificationContentOptions): { title: string; body: string } {
+  const {
+    name,
+    giftStatus,
+    daysUntilNextBirthday,
+    clothingSize,
+    shoeSize,
+    likes = [],
+    wishlist = [],
+    eventType = 'birthday',
+    buyGift = 1,
+  } = options;
+
+  const possName = getTurkishPossessive(name);
+  const eventLabel =
+    eventType === 'anniversary' ? 'yıldönümü' : eventType === 'special' ? 'özel günü' : 'doğum günü';
+
+  // HEDİYE ALINMAYACAKSA (buyGift === 0): Sadece doğum günü hatırlatması, hediye ve beden yok
+  if (buyGift === 0) {
+    const title = daysUntilNextBirthday === 0
+      ? `Bugün ${possName} Doğum Günü`
+      : `${name} — Doğum Günü Hatırlatması`;
+
+    const body = daysUntilNextBirthday === 0
+      ? `Bugün ${possName} ${eventLabel}! Kutlamayı ve tebrik etmeyi unutma.`
+      : daysUntilNextBirthday != null && daysUntilNextBirthday > 0
+        ? `${possName} ${eventLabel}ne ${daysUntilNextBirthday} gün kaldı.`
+        : `${possName} ${eventLabel} yaklaşıyor.`;
+
+    return { title, body };
+  }
+
+  // HEDİYE ALINACAKSA (buyGift === 1):
+  // Yalnızca girilmiş bedenler eklenir
+  const sizes: string[] = [];
+  if (clothingSize && clothingSize.trim()) sizes.push(`Kıyafet: ${clothingSize.trim()}`);
+  if (shoeSize && shoeSize.trim()) sizes.push(`Ayakkabı: ${shoeSize.trim()}`);
+  const sizeText = sizes.length > 0 ? ` (${sizes.join(', ')})` : '';
+
+  let title = '';
+  let body = '';
+
+  if (giftStatus === 'ready') {
+    title = `${name} — Hediye Hazır!`;
+    if (daysUntilNextBirthday === 0) {
+      body = `Bugün ${possName} ${eventLabel}! Hediyesi hazır, kutlamayı unutma.`;
+    } else if (daysUntilNextBirthday != null && daysUntilNextBirthday > 0) {
+      body = `${possName} ${eventLabel}ne ${daysUntilNextBirthday} gün kaldı ve hediyesi şimdiden hazır.`;
+    } else {
+      body = `${possName} hediyesi hazır durumda. Tebrik etmeyi unutma.`;
+    }
+  } else if (giftStatus === 'searching') {
+    title = `${name} İçin Hediye Aranıyor`;
+    if (wishlist.length > 0) {
+      body = `İstek listesindeki fikirler: ${wishlist.slice(0, 2).join(', ')}.${sizeText}`;
+    } else if (likes.length > 0) {
+      body = `Zevklerinden ilham alabilirsin: ${likes.slice(0, 2).join(', ')}.${sizeText}`;
+    } else if (daysUntilNextBirthday != null && daysUntilNextBirthday > 0) {
+      body = `${possName} ${eventLabel}ne ${daysUntilNextBirthday} gün kaldı. Hediye fikirlerine göz atmak ister misin?${sizeText}`;
+    } else {
+      body = `${possName} ${eventLabel} yaklaşıyor. Hediye fikirlerine göz atmak ister misin?${sizeText}`;
+    }
+  } else {
+    // not_started
+    title = `${name} — Hediye Hatırlatması`;
+    if (daysUntilNextBirthday === 0) {
+      body = `Bugün ${possName} ${eventLabel}! Henüz hediye planlanmadı, kutlamayı unutma.`;
+    } else if (wishlist.length > 0) {
+      body = `Henüz hediye hazırlığına başlanmadı. İstek listesi: ${wishlist.slice(0, 2).join(', ')}.${sizeText}`;
+    } else if (likes.length > 0) {
+      body = `Henüz bir plan yapılmadı. Sevdiği şeyler: ${likes.slice(0, 2).join(', ')}.${sizeText}`;
+    } else if (daysUntilNextBirthday != null && daysUntilNextBirthday > 0) {
+      body = `${possName} ${eventLabel}ne ${daysUntilNextBirthday} gün kaldı. Bir hediye planlamak ister misin?${sizeText}`;
+    } else {
+      body = `${possName} için henüz hediye hazırlığına başlanmadı. Zevklerine göz atmak iyi bir fikir olabilir.${sizeText}`;
+    }
+  }
+
+  return { title, body };
+}
 

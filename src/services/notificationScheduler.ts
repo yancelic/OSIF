@@ -2,6 +2,7 @@ import * as Notifications from './safeNotifications';
 import { Platform } from 'react-native';
 import { Contact, PriorityTier, GiftStatus } from '../types';
 import { isLeapYear } from '../utils/birthday';
+import { getTurkishPossessive } from '../ui/labels';
 
 // ---------------------------------------------------------------------------
 // Tipler & Arayüzler (Types & Interfaces)
@@ -102,7 +103,7 @@ export const NOTIFICATION_MATRIX: Record<PriorityTier, NotificationRule[]> = {
       minute: 0,
       title: 'Hediye Hatırlatması',
       getBody: (name: string) =>
-        `Hediye düşünmeye başladın mı? ${name}'in zevklerine göz at.`,
+        `Hediye düşünmeye başladın mı? ${getTurkishPossessive(name)} zevklerine göz at.`,
       isGiftReminder: true,
     },
     {
@@ -112,7 +113,7 @@ export const NOTIFICATION_MATRIX: Record<PriorityTier, NotificationRule[]> = {
       minute: 0,
       title: 'Hediye Hazır mı?',
       getBody: (name: string) =>
-        `Hediye hazır mı? ${name}'in doğum gününe 3 gün kaldı.`,
+        `Hediye hazır mı? ${getTurkishPossessive(name)} doğum gününe 3 gün kaldı.`,
       isGiftReminder: true,
     },
     {
@@ -122,7 +123,7 @@ export const NOTIFICATION_MATRIX: Record<PriorityTier, NotificationRule[]> = {
       minute: 0,
       title: 'Doğum Günü Kutlaması!',
       getBody: (name: string) =>
-        `Bugün ${name}'in doğum günü! Kutlamayı unutma.`,
+        `Bugün ${getTurkishPossessive(name)} doğum günü! Kutlamayı unutma.`,
       isGiftReminder: false,
     },
   ],
@@ -136,7 +137,7 @@ export const NOTIFICATION_MATRIX: Record<PriorityTier, NotificationRule[]> = {
       minute: 0,
       title: 'Doğum Günü Yaklaşıyor',
       getBody: (name: string) =>
-        `Gelecek hafta ${name}'in doğum günü. Bir plan veya hediye düşünüyor musun?`,
+        `Gelecek hafta ${getTurkishPossessive(name)} doğum günü. Bir plan veya hediye düşünüyor musun?`,
       isGiftReminder: true,
     },
     {
@@ -145,7 +146,7 @@ export const NOTIFICATION_MATRIX: Record<PriorityTier, NotificationRule[]> = {
       hour: 9,
       minute: 0,
       title: 'Doğum Günü',
-      getBody: (name: string) => `Bugün ${name}'in doğum günü.`,
+      getBody: (name: string) => `Bugün ${getTurkishPossessive(name)} doğum günü.`,
       isGiftReminder: false,
     },
   ],
@@ -158,7 +159,7 @@ export const NOTIFICATION_MATRIX: Record<PriorityTier, NotificationRule[]> = {
       hour: 9,
       minute: 0,
       title: 'Doğum Günü',
-      getBody: (name: string) => `Bugün ${name}'in doğum günü.`,
+      getBody: (name: string) => `Bugün ${getTurkishPossessive(name)} doğum günü.`,
       isGiftReminder: false,
     },
   ],
@@ -460,8 +461,8 @@ export async function scheduleContactNotifications(
         title: days === 0 ? eventTitle : `${eventTitle} Hatırlatıcısı`,
         getBody: (name: string) =>
           days === 0
-            ? `Bugün ${name}'in ${eventLabel}! Kutlamayı unutma.`
-            : `${name}'in ${eventLabel}ne ${days} gün kaldı. Hazırlık yapmayı unutma.`,
+            ? `Bugün ${getTurkishPossessive(name)} ${eventLabel}! Kutlamayı unutma.`
+            : `${getTurkishPossessive(name)} ${eventLabel}ne ${days} gün kaldı. Hazırlık yapmayı unutma.`,
         isGiftReminder: days > 0,
       }));
     } else {
@@ -473,8 +474,8 @@ export async function scheduleContactNotifications(
           title: r.daysBefore === 0 ? eventTitle : `${eventTitle} Hatırlatıcısı`,
           getBody: (name: string) =>
             r.daysBefore === 0
-              ? `Bugün ${name}'in ${eventLabel}!`
-              : `${name}'in ${eventLabel}ne ${r.daysBefore} gün kaldı.`,
+              ? `Bugün ${getTurkishPossessive(name)} ${eventLabel}!`
+              : `${getTurkishPossessive(name)} ${eventLabel}ne ${r.daysBefore} gün kaldı.`,
         }));
       }
     }
@@ -482,6 +483,11 @@ export async function scheduleContactNotifications(
     const scheduledResults: ScheduledNotificationResult[] = [];
 
     for (const rule of rules) {
+      // Eğer kişi için hediye takibi kapalıysa (buy_gift === 0), tüm hediye alarmlarını atla, sadece doğum gününü kur
+      if (contact.buy_gift === 0 && rule.isGiftReminder) {
+        continue;
+      }
+
       // Eğer hediye durumu 'ready' ise, ara hediye bildirimlerini kurma
       const isGiftReady =
         contact.gift_status === 'ready' || (contact as any).giftStatus === 'ready';

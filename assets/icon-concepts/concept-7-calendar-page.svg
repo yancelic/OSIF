@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <radialGradient id="deskBg" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#F7F2E8" />
+      <stop offset="100%" stop-color="#E2D9C7" />
+    </radialGradient>
+    <filter id="pageShadow" x="-10%" y="-10%" width="125%" height="125%">
+      <feDropShadow dx="0" dy="22" stdDeviation="24" flood-color="#1C1917" flood-opacity="0.22" />
+    </filter>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#C7452B" />
+      <stop offset="100%" stop-color="#9E321C" />
+    </linearGradient>
+  </defs>
+
+  <!-- Desk Canvas Base -->
+  <rect width="1024" height="1024" rx="228" fill="url(#deskBg)" />
+
+  <!-- Floating Sheet / Calendar Card -->
+  <g filter="url(#pageShadow)">
+    <!-- Main Card Body -->
+    <path d="M 270 240 
+             L 754 240 
+             L 754 690 
+             L 664 784 
+             L 270 784 
+             Z" 
+          fill="#FAF6EE" />
+
+    <!-- Folded Dog-Ear Corner -->
+    <path d="M 754 690 L 664 690 L 664 784 Z" fill="#D6CBB7" />
+    <path d="M 754 690 L 664 690 L 664 784 Z" fill="none" stroke="#B8AC96" stroke-width="2" />
+
+    <!-- Card Red Header Bar (Binding) -->
+    <rect x="270" y="240" width="484" height="96" rx="0" fill="url(#headerGrad)" />
+    <!-- Mini binding ring cutouts -->
+    <circle cx="390" cy="288" r="14" fill="#F7F2E8" />
+    <circle cx="634" cy="288" r="14" fill="#F7F2E8" />
+  </g>
+
+  <!-- Central Date Circle & Letter 'O' inside calendar -->
+  <g fill="#1C1917">
+    <!-- Big Serif 'O' (The One Special Fact) -->
+    <text x="512" y="585" 
+          font-family="Georgia, serif" 
+          font-size="210" 
+          font-weight="bold" 
+          text-anchor="middle">O</text>
+  </g>
+
+  <!-- Red Reminder Pin / Pushpin on Calendar -->
+  <g filter="url(#pageShadow)">
+    <circle cx="512" cy="650" r="18" fill="#B2412A" />
+    <line x1="420" y1="710" x2="604" y2="710" stroke="#1C1917" stroke-width="4" stroke-linecap="round" stroke-opacity="0.15" />
+  </g>
+</svg>

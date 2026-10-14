@@ -73,7 +73,13 @@ export async function initDatabase(customDb?: SQLite.SQLiteDatabase): Promise<SQ
       target_budget REAL,
       spent_amount REAL,
       custom_notification_days TEXT,
-      custom_notification_time TEXT
+      custom_notification_time TEXT,
+      buy_gift INTEGER DEFAULT 1
+    );
+
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY NOT NULL,
+      value TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS gift_tags (
@@ -122,6 +128,15 @@ export async function initDatabase(customDb?: SQLite.SQLiteDatabase): Promise<SQ
     if (!columnNames.has('custom_notification_time')) {
       await db.execAsync('ALTER TABLE contacts ADD COLUMN custom_notification_time TEXT');
     }
+    if (!columnNames.has('buy_gift')) {
+      await db.execAsync('ALTER TABLE contacts ADD COLUMN buy_gift INTEGER DEFAULT 1');
+    }
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS app_settings (
+        key TEXT PRIMARY KEY NOT NULL,
+        value TEXT NOT NULL
+      );
+    `);
   } catch (err) {
     // Migration hatası olursa sessizce logla
     console.warn('Migration kontrolü sırasında uyarı:', err);
@@ -238,6 +253,7 @@ export async function getContactById(
     spent_amount: contact.spent_amount ?? null,
     custom_notification_days: contact.custom_notification_days ?? null,
     custom_notification_time: contact.custom_notification_time ?? null,
+    buy_gift: contact.buy_gift ?? 1,
     gift_tags: tags,
     gift_history: history,
     days_until_next_birthday: details.daysUntilNextBirthday,
@@ -270,13 +286,14 @@ async function insertContactInternal(
   }
 
   const eventType: EventType = data.event_type ?? 'birthday';
+  const buyGift: number = data.buy_gift ?? 1;
   const contactId = data.id || generateId();
 
   await db.runAsync(
     `INSERT INTO contacts (
       id, name, birth_month, birth_day, birth_year, priority_tier, gift_status, clothing_size, shoe_size, notes,
-      event_type, target_budget, spent_amount, custom_notification_days, custom_notification_time
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      event_type, target_budget, spent_amount, custom_notification_days, custom_notification_time, buy_gift
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       contactId,
       data.name.trim(),
@@ -293,6 +310,7 @@ async function insertContactInternal(
       data.spent_amount ?? null,
       data.custom_notification_days ?? null,
       data.custom_notification_time ?? null,
+      buyGift,
     ]
   );
 
@@ -444,6 +462,10 @@ export async function updateContact(
   if (data.custom_notification_time !== undefined) {
     fields.push('custom_notification_time = ?');
     params.push(data.custom_notification_time);
+  }
+  if (data.buy_gift !== undefined) {
+    fields.push('buy_gift = ?');
+    params.push(data.buy_gift);
   }
 
   if (fields.length > 0) {
@@ -851,4 +873,31 @@ export async function clearAllData(): Promise<void> {
     await db.runAsync('DELETE FROM gift_tags');
     await db.runAsync('DELETE FROM contacts');
   });
+}
+
+/**
+ * Uygulama ayarını SQLite'tan okur (tema modu, dil tercihi vb.)
+ */
+export async function getAppSetting(key: string, defaultValue?: string): Promise<string | null> {
+  try {
+    const db = await getDatabase();
+    await initDatabase(db);
+    const row = await db.getFirstAsync<{ value: string }>('SELECT value FROM app_settings WHERE key = ?', [key]);
+    return row ? row.value : (defaultValue ?? null);
+  } catch {
+    return defaultValue ?? null;
+  }
+}
+
+/**
+ * Uygulama ayarını SQLite'a kalıcı olarak kaydeder.
+ */
+export async function setAppSetting(key: string, value: string): Promise<void> {
+  try {
+    const db = await getDatabase();
+    await initDatabase(db);
+    await db.runAsync('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', [key, value]);
+  } catch (err) {
+    console.warn('Ayar kaydedilirken hata:', err);
+  }
 }

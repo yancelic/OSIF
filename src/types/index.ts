@@ -49,6 +49,7 @@ export interface Contact {
   spent_amount?: number | null;
   custom_notification_days?: string | null; // JSON dizisi örn: "[14, 7, 0]"
   custom_notification_time?: string | null; // Örn: "10:00"
+  buy_gift?: number; // 1 = Hediye takibi açık, 0 = Yalnızca doğum günü hatırlatması
 }
 
 /**
@@ -117,6 +118,7 @@ export interface CreateContactInput {
   spent_amount?: number | null;
   custom_notification_days?: string | null;
   custom_notification_time?: string | null;
+  buy_gift?: number;
   gift_tags?: Omit<CreateGiftTagInput, 'contact_id'>[];
 }
 
@@ -138,6 +140,7 @@ export interface UpdateContactInput {
   spent_amount?: number | null;
   custom_notification_days?: string | null;
   custom_notification_time?: string | null;
+  buy_gift?: number;
 }
 
 /**

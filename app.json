@@ -4,14 +4,48 @@
     "slug": "osif",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#F2ECE1"
+    },
     "ios": {
       "supportsTablet": true
     },
     "plugins": [
       "expo-sqlite",
       "expo-font",
-      "expo-localization"
-    ]
+      "expo-localization",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "OSIFWidget",
+              "label": "OSIF Hızlı Bakış",
+              "description": "Yaklaşan doğum günleri ve hediye durumları",
+              "minWidth": "160dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "d43a8f59-06be-447e-8aeb-dae356409d2e"
+      }
+    },
+    "android": {
+      "package": "com.yancelic.osif",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F2ECE1"
+      }
+    }
   }
 }

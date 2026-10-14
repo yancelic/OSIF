@@ -275,9 +275,24 @@ export const ContactDetailScreen: React.FC = () => {
     : (insets.bottom > 0 ? insets.bottom : space.sm);
 
   // Bütçe hesabı
+  const buyGift = c.buy_gift ?? 1;
+  const isGiftActive = buyGift === 1;
   const hasBudget = c.target_budget != null && c.target_budget > 0;
   const spent = c.spent_amount || 0;
   const budgetRatio = hasBudget ? Math.min(1, spent / c.target_budget!) : 0;
+
+  const availableComposerTypes = useMemo(() => {
+    if (!isGiftActive) {
+      return COMPOSER_TYPES.filter((t) => t.key !== 'wishlist_item');
+    }
+    return COMPOSER_TYPES;
+  }, [isGiftActive]);
+
+  useEffect(() => {
+    if (!isGiftActive && draftType === 'wishlist_item') {
+      setDraftType('like');
+    }
+  }, [isGiftActive, draftType]);
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]} edges={['top', 'left', 'right']}>
@@ -343,7 +358,7 @@ export const ContactDetailScreen: React.FC = () => {
           </View>
 
           {/* Bütçe Kartı */}
-          {hasBudget && (
+          {isGiftActive && hasBudget && (
             <View style={[styles.budgetCard, { backgroundColor: colors.bone, borderColor: colors.hairline }]}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={[type.eyebrow, { color: colors.inkMuted }]}>Hediye Bütçesi</Text>
@@ -360,49 +375,57 @@ export const ContactDetailScreen: React.FC = () => {
           {c.notes ? <Text style={[styles.notes, { color: colors.inkMuted }]}>{c.notes}</Text> : null}
 
           {/* Hediye durumu */}
-          <View style={[styles.sectionRow, { borderTopColor: colors.hairline, borderBottomColor: colors.hairline }]}>
-            <View>
-              <Text style={[type.eyebrow, { color: colors.inkMuted }]}>Hediye Durumu</Text>
-              <Text style={[type.meta, { marginTop: 4, color: colors.inkMuted }]}>Dokunarak ilerlet</Text>
+          {isGiftActive && (
+            <View style={[styles.sectionRow, { borderTopColor: colors.hairline, borderBottomColor: colors.hairline }]}>
+              <View>
+                <Text style={[type.eyebrow, { color: colors.inkMuted }]}>Hediye Durumu</Text>
+                <Text style={[type.meta, { marginTop: 4, color: colors.inkMuted }]}>Dokunarak ilerlet</Text>
+              </View>
+              <GiftStatusSwitch status={c.gift_status} onCycle={() => cycleGiftStatus(c.id)} />
             </View>
-            <GiftStatusSwitch status={c.gift_status} onCycle={() => cycleGiftStatus(c.id)} />
-          </View>
+          )}
 
           {/* Bedenler */}
-          <View style={[styles.sectionHead, { borderBottomColor: colors.hairline }]}>
-            <Text style={[type.eyebrow, { color: colors.inkMuted }]}>Bedenler</Text>
-            <PressableScale
-              onPress={() => (editingSizes ? saveSizes() : setEditingSizes(true))}
-              hapticProfile={editingSizes ? 'none' : 'light'}
-              hitSlop={12}
-            >
-              <Text style={[styles.action, { color: colors.accent }]}>{editingSizes ? 'Kaydet' : 'Düzenle'}</Text>
-            </PressableScale>
-          </View>
-          {editingSizes ? (
-            <View style={styles.sizeEdit}>
-              <SizeInput label="Üst" value={clothingInput} onChangeText={setClothingInput} placeholder="L" colors={colors} />
-              <SizeInput label="Ayakkabı" value={shoesInput} onChangeText={setShoesInput} placeholder="43" colors={colors} />
-            </View>
-          ) : (
-            <Text style={[styles.sizes, { color: colors.ink }]}>
-              <Text style={[styles.sizeKey, { color: colors.inkMuted }]}>ÜST </Text>
-              {c.clothing_size || '—'}
-              <Text style={[styles.sizeSep, { color: colors.inkFaint }]}>{'   •   '}</Text>
-              <Text style={[styles.sizeKey, { color: colors.inkMuted }]}>AYAKKABI </Text>
-              {c.shoe_size || '—'}
-            </Text>
+          {isGiftActive && (
+            <>
+              <View style={[styles.sectionHead, { borderBottomColor: colors.hairline }]}>
+                <Text style={[type.eyebrow, { color: colors.inkMuted }]}>Bedenler</Text>
+                <PressableScale
+                  onPress={() => (editingSizes ? saveSizes() : setEditingSizes(true))}
+                  hapticProfile={editingSizes ? 'none' : 'light'}
+                  hitSlop={12}
+                >
+                  <Text style={[styles.action, { color: colors.accent }]}>{editingSizes ? 'Kaydet' : 'Düzenle'}</Text>
+                </PressableScale>
+              </View>
+              {editingSizes ? (
+                <View style={styles.sizeEdit}>
+                  <SizeInput label="Üst" value={clothingInput} onChangeText={setClothingInput} placeholder="L" colors={colors} />
+                  <SizeInput label="Ayakkabı" value={shoesInput} onChangeText={setShoesInput} placeholder="43" colors={colors} />
+                </View>
+              ) : (
+                <Text style={[styles.sizes, { color: colors.ink }]}>
+                  <Text style={[styles.sizeKey, { color: colors.inkMuted }]}>ÜST </Text>
+                  {c.clothing_size || '—'}
+                  <Text style={[styles.sizeSep, { color: colors.inkFaint }]}>{'   •   '}</Text>
+                  <Text style={[styles.sizeKey, { color: colors.inkMuted }]}>AYAKKABI </Text>
+                  {c.shoe_size || '—'}
+                </Text>
+              )}
+            </>
           )}
 
           {/* Hediye Fikirleri (Bağlantı Açılabilir) */}
-          <TagSection
-            title="Hediye fikirleri"
-            tags={tagsOf('wishlist_item')}
-            empty="Henüz bir fikir yok."
-            onRemove={removeTag}
-            onOpenUrl={openUrl}
-            colors={colors}
-          />
+          {isGiftActive && (
+            <TagSection
+              title="Hediye fikirleri"
+              tags={tagsOf('wishlist_item')}
+              empty="Henüz bir fikir yok."
+              onRemove={removeTag}
+              onOpenUrl={openUrl}
+              colors={colors}
+            />
+          )}
           <TagSection
             title="Zevkler"
             tags={tagsOf('like')}
@@ -419,78 +442,80 @@ export const ContactDetailScreen: React.FC = () => {
           />
 
           {/* Geçmiş Yıllar Hediyeleri */}
-          <View style={{ marginTop: space.xl }}>
-            <View style={[styles.sectionHead, { borderBottomColor: colors.hairline }]}>
-              <Text style={[type.eyebrow, { color: colors.inkMuted }]}>Geçmiş Hediyeler</Text>
-              <PressableScale
-                onPress={() => setShowAddHistory(!showAddHistory)}
-                hitSlop={10}
-              >
-                <Text style={[styles.action, { color: colors.accent }]}>
-                  {showAddHistory ? 'Kapat' : '+ Hediye Ekle'}
-                </Text>
-              </PressableScale>
-            </View>
-
-            {showAddHistory && (
-              <View style={[styles.addHistoryPanel, { backgroundColor: colors.bone, borderColor: colors.hairline }]}>
-                <View style={{ flexDirection: 'row', gap: space.md }}>
-                  <TextInput
-                    value={histYear}
-                    onChangeText={setHistYear}
-                    placeholder="2025"
-                    placeholderTextColor={colors.inkFaint}
-                    keyboardType="numeric"
-                    style={[styles.histYearInput, { color: colors.ink, borderBottomColor: colors.ink }]}
-                  />
-                  <TextInput
-                    value={histTitle}
-                    onChangeText={setHistTitle}
-                    placeholder="Alınan hediye adı..."
-                    placeholderTextColor={colors.inkFaint}
-                    style={[styles.histTitleInput, { color: colors.ink, borderBottomColor: colors.ink }]}
-                  />
-                </View>
-                <View style={{ flexDirection: 'row', gap: space.md, marginTop: space.sm, alignItems: 'center' }}>
-                  <TextInput
-                    value={histPrice}
-                    onChangeText={setHistPrice}
-                    placeholder="Tutar (TL)"
-                    placeholderTextColor={colors.inkFaint}
-                    keyboardType="numeric"
-                    style={[styles.histPriceInput, { color: colors.ink, borderBottomColor: colors.ink }]}
-                  />
-                  <PressableScale
-                    onPress={handleAddHistory}
-                    style={[styles.histSaveBtn, { backgroundColor: colors.ink }]}
-                  >
-                    <Text style={[styles.histSaveBtnText, { color: colors.canvas }]}>Kaydet</Text>
-                  </PressableScale>
-                </View>
+          {isGiftActive && (
+            <View style={{ marginTop: space.xl }}>
+              <View style={[styles.sectionHead, { borderBottomColor: colors.hairline }]}>
+                <Text style={[type.eyebrow, { color: colors.inkMuted }]}>Geçmiş Hediyeler</Text>
+                <PressableScale
+                  onPress={() => setShowAddHistory(!showAddHistory)}
+                  hitSlop={10}
+                >
+                  <Text style={[styles.action, { color: colors.accent }]}>
+                    {showAddHistory ? 'Kapat' : '+ Hediye Ekle'}
+                  </Text>
+                </PressableScale>
               </View>
-            )}
 
-            {c.gift_history && c.gift_history.length > 0 ? (
-              c.gift_history.map((hist) => (
-                <View key={hist.id} style={[styles.historyRow, { borderBottomColor: colors.hairline }]}>
-                  <Text style={[styles.historyYear, { color: colors.accent }]}>{hist.year}</Text>
-                  <View style={{ flex: 1, paddingHorizontal: space.sm }}>
-                    <Text style={[styles.historyTitle, { color: colors.ink }]}>{hist.title}</Text>
-                    {hist.price != null && (
-                      <Text style={[type.meta, { color: colors.inkMuted, fontSize: 12 }]}>
-                        {hist.price.toLocaleString('tr-TR')} TL
-                      </Text>
-                    )}
+              {showAddHistory && (
+                <View style={[styles.addHistoryPanel, { backgroundColor: colors.bone, borderColor: colors.hairline }]}>
+                  <View style={{ flexDirection: 'row', gap: space.md }}>
+                    <TextInput
+                      value={histYear}
+                      onChangeText={setHistYear}
+                      placeholder="2025"
+                      placeholderTextColor={colors.inkFaint}
+                      keyboardType="numeric"
+                      style={[styles.histYearInput, { color: colors.ink, borderBottomColor: colors.ink }]}
+                    />
+                    <TextInput
+                      value={histTitle}
+                      onChangeText={setHistTitle}
+                      placeholder="Alınan hediye adı..."
+                      placeholderTextColor={colors.inkFaint}
+                      style={[styles.histTitleInput, { color: colors.ink, borderBottomColor: colors.ink }]}
+                    />
                   </View>
-                  <PressableScale onPress={() => deleteGiftHistoryItem(hist.id)} hitSlop={10}>
-                    <Feather name="trash-2" size={14} color={colors.inkFaint} />
-                  </PressableScale>
+                  <View style={{ flexDirection: 'row', gap: space.md, marginTop: space.sm, alignItems: 'center' }}>
+                    <TextInput
+                      value={histPrice}
+                      onChangeText={setHistPrice}
+                      placeholder="Tutar (TL)"
+                      placeholderTextColor={colors.inkFaint}
+                      keyboardType="numeric"
+                      style={[styles.histPriceInput, { color: colors.ink, borderBottomColor: colors.ink }]}
+                    />
+                    <PressableScale
+                      onPress={handleAddHistory}
+                      style={[styles.histSaveBtn, { backgroundColor: colors.ink }]}
+                    >
+                      <Text style={[styles.histSaveBtnText, { color: colors.canvas }]}>Kaydet</Text>
+                    </PressableScale>
+                  </View>
                 </View>
-              ))
-            ) : (
-              <Text style={[styles.empty, { color: colors.inkFaint }]}>Kayıtlı geçmiş hediye yok.</Text>
-            )}
-          </View>
+              )}
+
+              {c.gift_history && c.gift_history.length > 0 ? (
+                c.gift_history.map((hist) => (
+                  <View key={hist.id} style={[styles.historyRow, { borderBottomColor: colors.hairline }]}>
+                    <Text style={[styles.historyYear, { color: colors.accent }]}>{hist.year}</Text>
+                    <View style={{ flex: 1, paddingHorizontal: space.sm }}>
+                      <Text style={[styles.historyTitle, { color: colors.ink }]}>{hist.title}</Text>
+                      {hist.price != null && (
+                        <Text style={[type.meta, { color: colors.inkMuted, fontSize: 12 }]}>
+                          {hist.price.toLocaleString('tr-TR')} TL
+                        </Text>
+                      )}
+                    </View>
+                    <PressableScale onPress={() => deleteGiftHistoryItem(hist.id)} hitSlop={10}>
+                      <Feather name="trash-2" size={14} color={colors.inkFaint} />
+                    </PressableScale>
+                  </View>
+                ))
+              ) : (
+                <Text style={[styles.empty, { color: colors.inkFaint }]}>Kayıtlı geçmiş hediye yok.</Text>
+              )}
+            </View>
+          )}
 
           {/* Kişiyi Sil */}
           <PressableScale onPress={confirmDelete} hapticProfile="none" style={styles.danger} hitSlop={8}>
@@ -502,7 +527,7 @@ export const ContactDetailScreen: React.FC = () => {
         {/* Hızlı ekleme Barı */}
         <View style={[styles.composer, { backgroundColor: colors.canvas, borderTopColor: colors.hairline, paddingBottom: composerBottomPadding }]}>
           <View style={styles.composerTypes}>
-            {COMPOSER_TYPES.map((t) => (
+            {availableComposerTypes.map((t) => (
               <PressableScale key={t.key} onPress={() => setDraftType(t.key)} hapticProfile="selection" scaleTo={0.94} style={styles.composerType}>
                 <Text style={[styles.composerTypeText, { color: colors.inkFaint }, draftType === t.key && { color: colors.ink }]}>
                   {t.label}
@@ -576,7 +601,7 @@ const SizeInput: React.FC<{ label: string; value: string; onChangeText: (t: stri
   colors,
 }) => (
   <View style={{ flex: 1 }}>
-    <Text style={[styles.sizeKey, { color: colors.inkMuted }]}>{label.toUpperCase()}</Text>
+    <Text style={[styles.sizeKey, { color: colors.inkMuted }]}>{label.toLocaleUpperCase('tr-TR')}</Text>
     <TextInput
       value={value}
       onChangeText={onChangeText}

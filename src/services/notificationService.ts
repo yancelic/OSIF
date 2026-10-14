@@ -2,6 +2,7 @@ import { Alert, Platform } from 'react-native';
 import * as Notifications from './safeNotifications';
 import { ContactWithDetails, PendingNotification } from '../types/index';
 import { haptic } from '../ui/haptics';
+import { buildNotificationContent, GIFT_STATUS_LABEL } from '../ui/labels';
 
 // Uygulama açıkken (foreground) bildirimlerin sesli ve banner olarak görünmesini sağlar
 try {
@@ -114,18 +115,32 @@ class NotificationService {
       const likes = contact.gift_tags.filter(t => t.type === 'like').map(t => t.title);
       const dislikes = contact.gift_tags.filter(t => t.type === 'dislike').map(t => t.title);
       const wishlist = contact.gift_tags.filter(t => t.type === 'wishlist_item').map(t => t.title);
+
+      const { title, body } = buildNotificationContent({
+        name: contact.name,
+        giftStatus: contact.gift_status,
+        daysUntilNextBirthday: contact.days_until_next_birthday,
+        clothingSize: contact.clothing_size,
+        shoeSize: contact.shoe_size,
+        likes,
+        wishlist,
+        eventType: contact.event_type || 'birthday',
+        buyGift: contact.buy_gift ?? 1,
+      });
+
       const notification: PendingNotification = {
         id: notifId,
         contactId: contact.id,
         contactName: contact.name,
         scheduledTime: scheduledDate.toISOString(),
-        title: `Hediye Hatırlatması: ${contact.name}`,
-        body: `${contact.name} için hediye hazırlığı! Durum: ${contact.gift_status}. Bedenler: ${contact.clothing_size || 'Belirtilmedi'} / ${contact.shoe_size || 'Belirtilmedi'}`,
+        title,
+        body,
         payload: {
           contactId: contact.id,
           name: contact.name,
           priorityTier: contact.priority_tier,
           giftStatus: contact.gift_status,
+          giftStatusLabel: GIFT_STATUS_LABEL[contact.gift_status] || contact.gift_status,
           daysUntilNextBirthday: contact.days_until_next_birthday,
           upcomingAge: contact.upcoming_age,
           clothingSize: contact.clothing_size,

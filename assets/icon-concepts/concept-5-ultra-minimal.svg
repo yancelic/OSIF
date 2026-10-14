@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Ultra clean paper backdrop -->
+    <radialGradient id="mattePaper" cx="50%" cy="35%" r="75%">
+      <stop offset="0%" stop-color="#FBF7EE" />
+      <stop offset="100%" stop-color="#EBE3D3" />
+    </radialGradient>
+    <filter id="crispShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#1C1917" flood-opacity="0.18" />
+    </filter>
+  </defs>
+
+  <!-- Clean Canvas -->
+  <rect width="1024" height="1024" rx="228" fill="url(#mattePaper)" />
+
+  <!-- Single hairline geometric accent -->
+  <circle cx="512" cy="512" r="320" fill="none" stroke="#1C1917" stroke-width="2" stroke-opacity="0.12" />
+
+  <!-- The Bold, Pristine Serif 'O' Monogram -->
+  <text x="512" y="660" 
+        font-family="Georgia, 'Times New Roman', serif" 
+        font-size="480" 
+        font-weight="bold" 
+        text-anchor="middle" 
+        fill="#1C1917" 
+        letter-spacing="-10">O</text>
+
+  <!-- The Focal Vermilion Notification / Memory Dot -->
+  <g filter="url(#crispShadow)">
+    <circle cx="680" cy="340" r="48" fill="#B2412A" />
+    <!-- Fine inner highlight -->
+    <circle cx="672" cy="332" r="14" fill="#FFFFFF" opacity="0.35" />
+  </g>
+</svg>

@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <radialGradient id="darkBg" cx="50%" cy="45%" r="75%">
+      <stop offset="0%" stop-color="#24201C" />
+      <stop offset="100%" stop-color="#141210" />
+    </radialGradient>
+    <linearGradient id="stampGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#DE5337" />
+      <stop offset="100%" stop-color="#AF3822" />
+    </linearGradient>
+    <filter id="stampShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#000000" flood-opacity="0.45" />
+    </filter>
+  </defs>
+
+  <!-- Dark Ink Canvas Background -->
+  <rect width="1024" height="1024" rx="228" fill="url(#darkBg)" />
+
+  <!-- Subtle Border Line -->
+  <rect x="40" y="40" width="944" height="944" rx="198" fill="none" stroke="#ECE5D8" stroke-width="2" stroke-opacity="0.12" />
+
+  <!-- Central Vermilion Stamp Tablet -->
+  <g filter="url(#stampShadow)">
+    <rect x="232" y="232" width="560" height="560" rx="64" fill="url(#stampGrad)" />
+    <!-- Fine inner engraved border on stamp -->
+    <rect x="256" y="256" width="512" height="512" rx="48" fill="none" stroke="#F2ECE1" stroke-width="2.5" stroke-opacity="0.4" />
+    <!-- Corner notched accent dots -->
+    <circle cx="282" cy="282" r="5" fill="#F2ECE1" opacity="0.6" />
+    <circle cx="742" cy="282" r="5" fill="#F2ECE1" opacity="0.6" />
+    <circle cx="282" cy="742" r="5" fill="#F2ECE1" opacity="0.6" />
+    <circle cx="742" cy="742" r="5" fill="#F2ECE1" opacity="0.6" />
+  </g>
+
+  <!-- Typography: 'O' with dynamic exclamation mark -->
+  <g fill="#F2ECE1">
+    <!-- Bold Classical Serif 'O' -->
+    <text x="455" y="605" 
+          font-family="Georgia, 'Times New Roman', serif" 
+          font-size="340" 
+          font-weight="bold" 
+          text-anchor="middle">O</text>
+
+    <!-- Punctuation: Exclamation bar and diamond dot -->
+    <path d="M 622 340 L 642 340 L 634 505 L 630 505 Z" fill="#F2ECE1" />
+    <!-- Star/Diamond point for exclamation -->
+    <path d="M 632 545 Q 632 562 642 562 Q 632 562 632 579 Q 632 562 622 562 Q 632 562 632 545 Z" fill="#F2ECE1" />
+  </g>
+
+  <!-- Sub-label inside stamp: 'SIF' underneath -->
+  <text x="512" y="710" 
+        font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+        font-size="28" 
+        font-weight="800" 
+        letter-spacing="16" 
+        text-anchor="middle" 
+        fill="#F2ECE1" 
+        opacity="0.9">SIF</text>
+</svg>

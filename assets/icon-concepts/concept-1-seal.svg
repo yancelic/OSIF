@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Background subtle gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C24931" />
+      <stop offset="100%" stop-color="#9E3520" />
+    </linearGradient>
+    <!-- Paper texture & glow -->
+    <radialGradient id="sealGlow" cx="50%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#F7F2E9" stop-opacity="1" />
+      <stop offset="100%" stop-color="#E5DC Flora" stop-opacity="0.95" />
+    </radialGradient>
+    <filter id="subtleShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.22" />
+    </filter>
+  </defs>
+
+  <!-- Base App Icon Background (Vermilion) -->
+  <rect width="1024" height="1024" rx="228" fill="url(#bgGrad)" />
+
+  <!-- Inner Debossed / Stitched Border -->
+  <rect x="52" y="52" width="920" height="920" rx="180" fill="none" stroke="#F2ECE1" stroke-width="4" stroke-opacity="0.3" stroke-dasharray="16 12" />
+
+  <!-- Central Seal Circle -->
+  <g filter="url(#subtleShadow)">
+    <circle cx="512" cy="512" r="340" fill="#F2ECE1" />
+    <!-- Fine inner ring -->
+    <circle cx="512" cy="512" r="316" fill="none" stroke="#B2412A" stroke-width="3" stroke-opacity="0.4" />
+    <circle cx="512" cy="512" r="306" fill="none" stroke="#1C1917" stroke-width="1.5" stroke-opacity="0.25" />
+  </g>
+
+  <!-- Decorative Astrological Stars -->
+  <g fill="#B2412A">
+    <!-- North star -->
+    <path d="M 512 240 Q 512 258 522 258 Q 512 258 512 276 Q 512 258 502 258 Q 512 258 512 240 Z" />
+    <!-- South star -->
+    <path d="M 512 748 Q 512 766 522 766 Q 512 766 512 784 Q 512 766 502 766 Q 512 766 512 748 Z" />
+    <!-- East star -->
+    <path d="M 766 512 Q 766 522 784 512 Q 766 502 766 512 Z" />
+    <!-- West star -->
+    <path d="M 258 512 Q 258 522 240 512 Q 258 502 258 512 Z" />
+  </g>
+
+  <!-- Editorial Monogram Serif 'O' with Inner Ribbon/Fact Knot -->
+  <text x="512" y="585" 
+        font-family="Georgia, 'Times New Roman', serif" 
+        font-size="280" 
+        font-weight="bold" 
+        text-anchor="middle" 
+        fill="#1C1917" 
+        letter-spacing="-4">O</text>
+
+  <!-- Subtle Accent Sparkle in O's Heart -->
+  <g fill="#B2412A">
+    <path d="M 512 455 Q 512 485 528 495 Q 512 505 512 535 Q 512 505 496 495 Q 512 485 512 455 Z" />
+  </g>
+
+  <!-- Bottom Subtitle in Seal -->
+  <text x="512" y="680" 
+        font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+        font-size="26" 
+        font-weight="700" 
+        letter-spacing="10" 
+        text-anchor="middle" 
+        fill="#B2412A">OSIF</text>
+</svg>

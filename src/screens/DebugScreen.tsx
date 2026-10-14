@@ -29,6 +29,7 @@ export const DebugScreen: React.FC = () => {
 
   const colors = getThemeColors(themeMode);
   const [dateInput, setDateInput] = useState(currentSystemDate);
+  const [showPayloads, setShowPayloads] = useState(false);
 
   const applyDate = () => {
     if (dateInput.trim()) setMockDate(dateInput.trim());
@@ -106,22 +107,56 @@ export const DebugScreen: React.FC = () => {
           <Action label="Listeyi yenile" onPress={() => refreshPendingNotifications()} colors={colors} />
           <Action label="Bekleyenlerin hepsini iptal et" danger onPress={() => clearAllNotifications()} colors={colors} />
 
+          {pendingNotifications.length > 0 && (
+            <Action
+              label={showPayloads ? 'Teknik JSON verilerini gizle' : 'Teknik JSON verilerini göster'}
+              onPress={() => setShowPayloads(!showPayloads)}
+              colors={colors}
+            />
+          )}
+
           {pendingNotifications.length === 0 ? (
             <Text style={[styles.empty, { color: colors.inkFaint }]}>Planlanmış bildirim yok.</Text>
           ) : (
-            pendingNotifications.map((item) => (
-              <View key={item.id} style={[styles.notif, { borderBottomColor: colors.hairline }]}>
-                <Text style={[styles.notifTitle, { color: colors.ink }]}>{item.title}</Text>
-                <Text style={[type.meta, { color: colors.inkMuted }]}>
-                  {item.status.toUpperCase()}  ·  {item.scheduledTime}
-                </Text>
-                <Text style={[type.meta, { marginTop: 4, color: colors.inkMuted }]}>{item.body}</Text>
-                <Text style={[styles.mono, { color: colors.inkMuted }]}>{JSON.stringify(item.payload, null, 2)}</Text>
-                {item.status === 'pending' && (
-                  <Inline label="Bu bildirimi iptal et" onPress={() => cancelNotification(item.id)} colors={colors} />
-                )}
-              </View>
-            ))
+            pendingNotifications.map((item) => {
+              const isPending = item.status === 'pending';
+              const dateObj = new Date(item.scheduledTime);
+              const timeDisplay = isNaN(dateObj.getTime())
+                ? item.scheduledTime
+                : dateObj.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+              return (
+                <View key={item.id} style={[styles.notif, { borderBottomColor: colors.hairline }]}>
+                  <Text style={[styles.notifTitle, { color: colors.ink }]}>{item.title}</Text>
+                  <View style={styles.notifBadgeRow}>
+                    <View
+                      style={[
+                        styles.badge,
+                        { backgroundColor: isPending ? colors.bone : '#E0E7FF' },
+                      ]}
+                    >
+                      <Text style={[type.meta, { fontSize: 11, color: colors.ink }]}>
+                        {isPending ? 'Bekliyor' : 'Tetiklendi'}
+                      </Text>
+                    </View>
+                    <Text style={[type.meta, { color: colors.inkMuted, fontSize: 12 }]}>
+                      {timeDisplay}
+                    </Text>
+                  </View>
+                  <Text style={[type.meta, { marginTop: 6, color: colors.ink, fontSize: 13, lineHeight: 18 }]}>
+                    {item.body}
+                  </Text>
+                  {showPayloads && (
+                    <Text style={[styles.mono, { color: colors.inkMuted }]}>
+                      {JSON.stringify(item.payload, null, 2)}
+                    </Text>
+                  )}
+                  {isPending && (
+                    <Inline label="Bu bildirimi iptal et" onPress={() => cancelNotification(item.id)} colors={colors} />
+                  )}
+                </View>
+              );
+            })
           )}
         </Section>
         <View style={{ height: space.xxl }} />
@@ -183,5 +218,16 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 16,
     marginVertical: space.sm,
+  },
+  notifBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  badge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 3,
   },
 });

@@ -24,10 +24,14 @@ import {
   importFullDatabaseJSON,
   seedDummyData,
   clearAllData,
+  getAppSetting,
+  setAppSetting,
 } from '../database';
 import { getRealTodayDate, shiftDateByDays } from '../services/dateService';
 import { notificationService } from '../services/notificationService';
 import { scheduleContactNotifications } from '../services/notificationScheduler';
+import { Language } from '../utils/i18n';
+import { refreshAppWidget } from '../widgets/widgetTaskHandler';
 
 const GIFT_ORDER: GiftStatus[] = ['not_started', 'searching', 'ready'];
 
@@ -46,6 +50,7 @@ interface AppContextType {
   currentSystemDate: string;
   isMockActive: boolean;
   themeMode: ThemeMode;
+  language: Language;
   isReady: boolean;
   dbError: string | null;
   pendingNotifications: PendingNotification[];
@@ -54,6 +59,7 @@ interface AppContextType {
   navigateTo: (screen: ScreenType, contactId?: string) => void;
   selectContact: (contactId: string | null) => void;
   setThemeMode: (mode: ThemeMode) => void;
+  setLanguage: (lang: Language) => Promise<void>;
 
   // Kişi & Hediye işlemleri (SQLite)
   setGiftStatus: (contactId: string, status: GiftStatus) => Promise<void>;
@@ -98,6 +104,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [activeScreen, setActiveScreen] = useState<ScreenType>('dashboard');
   const [themeMode, setThemeMode] = useState<ThemeMode>('light');
+  const [language, setLanguageState] = useState<Language>('tr');
 
   const [systemDate, setSystemDateState] = useState<string>(getRealTodayDate());
   const [isMockActive, setIsMockActive] = useState<boolean>(false);
@@ -116,17 +123,26 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (id === requestId.current) {
         setContacts(list);
         setDbError(null);
+        refreshAppWidget().catch(() => {});
       }
     } catch (e) {
       setDbError(e instanceof Error ? e.message : String(e));
     }
   }, []);
 
-  // Açılış: şemayı hazırla, ardından kişileri yükle
+  // Açılış: şemayı hazırla, ayarları yükle, ardından kişileri yükle
   useEffect(() => {
     (async () => {
       try {
         await initDatabase();
+        const savedTheme = await getAppSetting('themeMode');
+        if (savedTheme === 'light' || savedTheme === 'dark') {
+          setThemeMode(savedTheme);
+        }
+        const savedLang = await getAppSetting('language');
+        if (savedLang === 'tr' || savedLang === 'en') {
+          setLanguageState(savedLang);
+        }
         await reload();
         setIsReady(true);
       } catch (e) {
@@ -134,6 +150,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     })();
   }, [reload]);
+
+  const handleSetThemeMode = (mode: ThemeMode) => {
+    setThemeMode(mode);
+    setAppSetting('themeMode', mode).catch(() => {});
+  };
+
+  const handleSetLanguage = async (lang: Language) => {
+    setLanguageState(lang);
+    await setAppSetting('language', lang);
+  };
 
   useEffect(() => {
     if (isReady) reload();
@@ -294,7 +320,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const triggerTestNotifications = (delaySeconds: number = 5) => {
     setLastTriggeredAlert(`Bildirimler ${delaySeconds} saniye sonraya kuruldu. Sayaç başladı.`);
     notificationService.scheduleAllForTest(contacts, delaySeconds, (triggered) => {
-      setLastTriggeredAlert(`Ateşlendi: [${triggered.title}] Payload: ${JSON.stringify(triggered.payload)}`);
+      setLastTriggeredAlert(`İletildi: "${triggered.title}" — ${triggered.body}`);
       refreshPendingNotifications();
     });
     refreshPendingNotifications();
@@ -322,13 +348,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         currentSystemDate: systemDate,
         isMockActive,
         themeMode,
+        language,
         isReady,
         dbError,
         pendingNotifications,
         lastTriggeredAlert,
         navigateTo,
         selectContact,
-        setThemeMode,
+        setThemeMode: handleSetThemeMode,
+        setLanguage: handleSetLanguage,
         setGiftStatus,
         cycleGiftStatus,
         addContact,

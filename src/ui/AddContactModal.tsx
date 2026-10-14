@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -32,28 +33,40 @@ const EVENT_TYPE_OPTIONS: { key: EventType; label: string }[] = [
 ];
 
 export const AddContactModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
-  const { addContact, currentSystemDate, themeMode } = useApp();
+  const { addContact, currentSystemDate, themeMode, language } = useApp();
   const colors = getThemeColors(themeMode);
 
   const [formName, setFormName] = useState('');
   const [formDate, setFormDate] = useState('');
   const [formEventType, setFormEventType] = useState<EventType>('birthday');
   const [formTier, setFormTier] = useState<PriorityTier>(2);
+  const [formBuyGift, setFormBuyGift] = useState(true);
   const [formClothing, setFormClothing] = useState('');
   const [formShoes, setFormShoes] = useState('');
   const [formTargetBudget, setFormTargetBudget] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const dateConfig = useMemo(() => getDeviceDateConfig(), []);
 
   const handleCreate = async () => {
+    if (isSubmitting) return;
+    Keyboard.dismiss();
+
     const date = parseDateInput(formDate, dateConfig.order);
     if (!formName.trim() || !date) {
       haptic('medium');
-      Alert.alert('Eksik bilgi', `İsim ve geçerli bir tarih (${dateConfig.placeholder}) gerekli.`);
+      Alert.alert(
+        language === 'en' ? 'Missing info' : 'Eksik bilgi',
+        language === 'en'
+          ? `Name and valid date (${dateConfig.placeholder}) required.`
+          : `İsim ve geçerli bir tarih (${dateConfig.placeholder}) gerekli.`
+      );
       return;
     }
+
+    setIsSubmitting(true);
     try {
-      const budgetNum = formTargetBudget.trim() ? parseFloat(formTargetBudget.replace(',', '.')) : null;
+      const budgetNum = formBuyGift && formTargetBudget.trim() ? parseFloat(formTargetBudget.replace(',', '.')) : null;
 
       await addContact({
         name: formName.trim(),
@@ -62,11 +75,12 @@ export const AddContactModal: React.FC<Props> = ({ visible, onClose, onCreated }
         birth_day: date.day,
         priority_tier: formTier,
         gift_status: 'not_started',
-        clothing_size: formClothing.trim() || null,
-        shoe_size: formShoes.trim() || null,
+        clothing_size: formBuyGift ? (formClothing.trim() || null) : null,
+        shoe_size: formBuyGift ? (formShoes.trim() || null) : null,
         event_type: formEventType,
         target_budget: isNaN(budgetNum as number) ? null : budgetNum,
         spent_amount: 0,
+        buy_gift: formBuyGift ? 1 : 0,
       });
       haptic('success');
       setFormName('');
@@ -75,11 +89,14 @@ export const AddContactModal: React.FC<Props> = ({ visible, onClose, onCreated }
       setFormShoes('');
       setFormTargetBudget('');
       setFormEventType('birthday');
+      setFormBuyGift(true);
       onClose();
       if (onCreated) onCreated();
     } catch (e) {
       haptic('medium');
-      Alert.alert('Kaydedilemedi', e instanceof Error ? e.message : String(e));
+      Alert.alert(language === 'en' ? 'Could not save' : 'Kaydedilemedi', e instanceof Error ? e.message : String(e));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -89,25 +106,31 @@ export const AddContactModal: React.FC<Props> = ({ visible, onClose, onCreated }
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <ScrollView
             contentContainerStyle={[styles.content, { paddingBottom: space.xxl * 2 }]}
-            keyboardShouldPersistTaps="handled"
+            keyboardShouldPersistTaps="always"
             keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.modalTop}>
-              <Text style={[type.eyebrow, { color: colors.inkMuted }]}>Yeni kayıt</Text>
+              <Text style={[type.eyebrow, { color: colors.inkMuted }]}>
+                {language === 'en' ? 'New Contact' : 'Yeni kayıt'}
+              </Text>
               <PressableScale onPress={onClose} hitSlop={12} accessibilityLabel="Kapat">
                 <Feather name="x" size={22} color={colors.ink} />
               </PressableScale>
             </View>
-            <Text style={[type.display, { marginVertical: space.lg, color: colors.ink }]}>Kimin için?</Text>
+            <Text style={[type.display, { marginVertical: space.lg, color: colors.ink }]}>
+              {language === 'en' ? 'For whom?' : 'Kimin için?'}
+            </Text>
 
             {/* İsim */}
             <View style={{ marginTop: space.lg }}>
-              <Text style={[type.eyebrow, { color: colors.inkMuted }]}>İsim</Text>
+              <Text style={[type.eyebrow, { color: colors.inkMuted }]}>
+                {language === 'en' ? 'Name' : 'İsim'}
+              </Text>
               <TextInput
                 value={formName}
                 onChangeText={setFormName}
-                placeholder="Ad Soyad"
+                placeholder={language === 'en' ? 'Full Name' : 'Ad Soyad'}
                 placeholderTextColor={colors.inkFaint}
                 selectionColor={colors.accent}
                 style={[styles.input, { color: colors.ink, borderBottomColor: colors.ink, fontSize: 26, lineHeight: 34 }]}
@@ -130,7 +153,9 @@ export const AddContactModal: React.FC<Props> = ({ visible, onClose, onCreated }
             </View>
 
             {/* Etkinlik Türü */}
-            <Text style={[type.eyebrow, { marginTop: space.lg, color: colors.inkMuted }]}>Etkinlik Türü</Text>
+            <Text style={[type.eyebrow, { marginTop: space.lg, color: colors.inkMuted }]}>
+              {language === 'en' ? 'Event Type' : 'Etkinlik Türü'}
+            </Text>
             <View style={styles.tierRow}>
               {EVENT_TYPE_OPTIONS.map((opt) => (
                 <PressableScale
@@ -148,7 +173,9 @@ export const AddContactModal: React.FC<Props> = ({ visible, onClose, onCreated }
             </View>
 
             {/* Yakınlık */}
-            <Text style={[type.eyebrow, { marginTop: space.lg, color: colors.inkMuted }]}>Yakınlık</Text>
+            <Text style={[type.eyebrow, { marginTop: space.lg, color: colors.inkMuted }]}>
+              {language === 'en' ? 'Relationship Tier' : 'Yakınlık'}
+            </Text>
             <View style={styles.tierRow}>
               {TIER_OPTIONS.map((t) => (
                 <PressableScale
@@ -166,50 +193,95 @@ export const AddContactModal: React.FC<Props> = ({ visible, onClose, onCreated }
               ))}
             </View>
 
-            {/* Hedef Bütçe */}
-            <View style={{ marginTop: space.lg }}>
-              <Text style={[type.eyebrow, { color: colors.inkMuted }]}>Hedef Bütçe (TL - İsteğe Bağlı)</Text>
-              <TextInput
-                value={formTargetBudget}
-                onChangeText={setFormTargetBudget}
-                placeholder="örn: 1000"
-                placeholderTextColor={colors.inkFaint}
-                keyboardType="numeric"
-                selectionColor={colors.accent}
-                style={[styles.input, { color: colors.ink, borderBottomColor: colors.ink }]}
+            {/* Hediye Alınacak mı? Seçeneği */}
+            <PressableScale
+              onPress={() => {
+                haptic('selection');
+                setFormBuyGift(!formBuyGift);
+              }}
+              style={[styles.giftToggleBox, { backgroundColor: colors.bone }]}
+            >
+              <View style={{ flex: 1, paddingRight: space.md }}>
+                <Text style={[styles.giftToggleTitle, { color: colors.ink }]}>
+                  {language === 'en' ? 'Buy a gift for this person?' : 'Bu kişi için hediye alınacak mı?'}
+                </Text>
+                <Text style={[type.meta, { fontSize: 12, color: colors.inkMuted, marginTop: 2 }]}>
+                  {formBuyGift
+                    ? (language === 'en' ? 'Gift & birthday reminders will be sent.' : 'Hediye ve doğum günü hatırlatması gönderilir.')
+                    : (language === 'en' ? 'Only birthday reminder will be sent.' : 'Yalnızca doğum günü hatırlatması gönderilir.')}
+                </Text>
+              </View>
+              <Feather
+                name={formBuyGift ? 'check-square' : 'square'}
+                size={22}
+                color={formBuyGift ? colors.accent : colors.inkMuted}
               />
-            </View>
+            </PressableScale>
 
-            {/* Beden & Ayakkabı */}
-            <View style={{ flexDirection: 'row', gap: space.lg, marginTop: space.lg }}>
-              <View style={{ flex: 1 }}>
-                <Text style={[type.eyebrow, { color: colors.inkMuted }]}>Beden</Text>
-                <TextInput
-                  value={formClothing}
-                  onChangeText={setFormClothing}
-                  placeholder="M"
-                  placeholderTextColor={colors.inkFaint}
-                  style={[styles.input, { color: colors.ink, borderBottomColor: colors.ink }]}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[type.eyebrow, { color: colors.inkMuted }]}>Ayakkabı</Text>
-                <TextInput
-                  value={formShoes}
-                  onChangeText={setFormShoes}
-                  placeholder="42"
-                  placeholderTextColor={colors.inkFaint}
-                  style={[styles.input, { color: colors.ink, borderBottomColor: colors.ink }]}
-                />
-              </View>
-            </View>
+            {/* Yalnızca hediye alınacaksa Bütçe ve Bedenler görünür */}
+            {formBuyGift && (
+              <>
+                {/* Hedef Bütçe */}
+                <View style={{ marginTop: space.lg }}>
+                  <Text style={[type.eyebrow, { color: colors.inkMuted }]}>
+                    {language === 'en' ? 'Target Budget (Optional)' : 'Hedef Bütçe (TL - İsteğe Bağlı)'}
+                  </Text>
+                  <TextInput
+                    value={formTargetBudget}
+                    onChangeText={setFormTargetBudget}
+                    placeholder="örn: 1000"
+                    placeholderTextColor={colors.inkFaint}
+                    keyboardType="numeric"
+                    selectionColor={colors.accent}
+                    style={[styles.input, { color: colors.ink, borderBottomColor: colors.ink }]}
+                  />
+                </View>
+
+                {/* Beden & Ayakkabı */}
+                <View style={{ flexDirection: 'row', gap: space.lg, marginTop: space.lg }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[type.eyebrow, { color: colors.inkMuted }]}>
+                      {language === 'en' ? 'Clothing Size' : 'Kıyafet Bedeni'}
+                    </Text>
+                    <TextInput
+                      value={formClothing}
+                      onChangeText={setFormClothing}
+                      placeholder="M"
+                      placeholderTextColor={colors.inkFaint}
+                      style={[styles.input, { color: colors.ink, borderBottomColor: colors.ink }]}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[type.eyebrow, { color: colors.inkMuted }]}>
+                      {language === 'en' ? 'Shoe Size' : 'Ayakkabı Numarası'}
+                    </Text>
+                    <TextInput
+                      value={formShoes}
+                      onChangeText={setFormShoes}
+                      placeholder="42"
+                      placeholderTextColor={colors.inkFaint}
+                      style={[styles.input, { color: colors.ink, borderBottomColor: colors.ink }]}
+                    />
+                  </View>
+                </View>
+              </>
+            )}
 
             <PressableScale
               onPress={handleCreate}
-              hapticProfile="none"
-              style={[styles.fab, { backgroundColor: colors.ink, alignSelf: 'stretch', justifyContent: 'center', marginTop: space.xl }]}
+              disabled={isSubmitting}
+              hapticProfile="light"
+              style={[
+                styles.fab,
+                { backgroundColor: colors.ink, alignSelf: 'stretch', justifyContent: 'center', marginTop: space.xl },
+                isSubmitting && { opacity: 0.6 },
+              ]}
             >
-              <Text style={[styles.fabText, { color: colors.canvas }]}>Kaydet</Text>
+              <Text style={[styles.fabText, { color: colors.canvas }]}>
+                {isSubmitting
+                  ? (language === 'en' ? 'Saving…' : 'Kaydediliyor…')
+                  : (language === 'en' ? 'Save' : 'Kaydet')}
+              </Text>
             </PressableScale>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -247,4 +319,13 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   fabText: { fontFamily: fonts.sans, fontSize: 14, letterSpacing: 0.6 },
+  giftToggleBox: {
+    padding: space.md,
+    borderRadius: 8,
+    marginTop: space.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  giftToggleTitle: { fontFamily: fonts.serif, fontSize: 15 },
 });

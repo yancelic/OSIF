@@ -16,6 +16,9 @@ import { useApp } from '../context/AppContext';
 import { PressableScale } from '../ui/PressableScale';
 import { haptic } from '../ui/haptics';
 import { fonts, getThemeColors, hairlineWidth, space, type } from '../ui/theme';
+import { GIFT_STATUS_LABEL } from '../ui/labels';
+import { pinOSIFWidget } from '../widgets/widgetTaskHandler';
+import { t } from '../utils/i18n';
 
 const MONTH_NAMES = [
   'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz',
@@ -23,12 +26,46 @@ const MONTH_NAMES = [
 ];
 
 export const SettingsScreen: React.FC = () => {
-  const { contacts, themeMode, setThemeMode, exportDataJSON, importDataJSON } = useApp();
+  const { contacts, themeMode, setThemeMode, exportDataJSON, importDataJSON, language, setLanguage } = useApp();
   const colors = getThemeColors(themeMode);
 
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [importJsonText, setImportJsonText] = useState('');
   const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [isAddingWidget, setIsAddingWidget] = useState(false);
+
+  const handleAddWidget = async () => {
+    if (isAddingWidget) return;
+    setIsAddingWidget(true);
+    haptic('medium');
+    try {
+      const pinned = await pinOSIFWidget();
+      if (pinned) {
+        Alert.alert(
+          language === 'en' ? 'Widget Request Sent' : 'Widget İsteği Gönderildi',
+          language === 'en'
+            ? 'The system prompt to add the widget has been triggered on your home screen.'
+            : 'Ana ekrana widget ekleme sistemi açıldı. Onaylayarak widget’ı yerleştirebilirsiniz.'
+        );
+      } else {
+        Alert.alert(
+          language === 'en' ? 'Widget Support' : 'Widget Desteği',
+          language === 'en'
+            ? 'Your launcher does not support direct widget pinning. You can add the OSIF widget directly by long-pressing your device home screen and selecting Widgets.'
+            : 'Başlatıcınız doğrudan butonla eklemeyi desteklemiyor olabilir. Telefon ana ekranına basılı tutup Widget menüsünden OSIF widget’ını seçerek de ekleyebilirsiniz.'
+        );
+      }
+    } catch {
+      Alert.alert(
+        language === 'en' ? 'Widget' : 'Widget Bilgisi',
+        language === 'en'
+          ? 'Widget can be added via the home screen widget menu on your Android device.'
+          : 'Telefon ana ekranına basılı tutup Widget menüsünden OSIF Hızlı Bakış widget’ını ekleyebilirsiniz.'
+      );
+    } finally {
+      setIsAddingWidget(false);
+    }
+  };
 
   // 12 aylık dağılım
   const monthDistribution = useMemo(() => {
@@ -62,6 +99,14 @@ export const SettingsScreen: React.FC = () => {
     return Array.from(map.entries())
       .map(([name, data]) => ({ name, ...data }))
       .sort((a, b) => b.count - a.count);
+  }, [contacts]);
+
+  // Hızlı Bakış Widget Önizlemesi için en yakın 2 kişi
+  const upcomingForWidget = useMemo(() => {
+    return contacts
+      .slice()
+      .sort((a, b) => (a.days_until_next_birthday ?? 999) - (b.days_until_next_birthday ?? 999))
+      .slice(0, 2);
   }, [contacts]);
 
   // JSON Dışa Aktarma (Paylaşım)
@@ -154,7 +199,55 @@ export const SettingsScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* 2. Veri Yedekleme & Geri Yükleme */}
+        {/* 2. Dil Seçeneği */}
+        <View style={[styles.section, { borderTopWidth: hairlineWidth, borderTopColor: colors.hairline }]}>
+          <Text style={[type.eyebrow, { color: colors.inkMuted }]}>
+            {language === 'en' ? 'Language' : 'Dil Seçeneği'}
+          </Text>
+          <View style={[styles.themeRow, { marginTop: space.md }]}>
+            <PressableScale
+              onPress={() => {
+                haptic('selection');
+                setLanguage('tr');
+              }}
+              style={[
+                styles.themeCard,
+                {
+                  backgroundColor: colors.bone,
+                  borderColor: language === 'tr' ? colors.accent : colors.hairline,
+                },
+              ]}
+            >
+              <Text style={[styles.themeCardTitle, { color: colors.ink }]}>Türkçe</Text>
+              <Text style={[styles.themeCardMeta, { color: colors.inkMuted }]}>Varsayılan</Text>
+              {language === 'tr' && (
+                <View style={[styles.activeDot, { backgroundColor: colors.accent }]} />
+              )}
+            </PressableScale>
+
+            <PressableScale
+              onPress={() => {
+                haptic('selection');
+                setLanguage('en');
+              }}
+              style={[
+                styles.themeCard,
+                {
+                  backgroundColor: colors.bone,
+                  borderColor: language === 'en' ? colors.accent : colors.hairline,
+                },
+              ]}
+            >
+              <Text style={[styles.themeCardTitle, { color: colors.ink }]}>English</Text>
+              <Text style={[styles.themeCardMeta, { color: colors.inkMuted }]}>International</Text>
+              {language === 'en' && (
+                <View style={[styles.activeDot, { backgroundColor: colors.accent }]} />
+              )}
+            </PressableScale>
+          </View>
+        </View>
+
+        {/* 3. Veri Yedekleme & Geri Yükleme */}
         <View style={[styles.section, { borderTopWidth: hairlineWidth, borderTopColor: colors.hairline }]}>
           <Text style={[type.eyebrow, { color: colors.inkMuted }]}>Veri Yedekleme & Aktarım</Text>
           <Text style={[type.meta, { color: colors.inkMuted, marginTop: space.xs }]}>
@@ -234,15 +327,92 @@ export const SettingsScreen: React.FC = () => {
           )}
         </View>
 
-        {/* 4. Ana Ekran Widget Rehberi */}
+        {/* 4. Ana Ekran Widget Rehberi & Canlı Önizleme */}
         <View style={[styles.section, { borderTopWidth: hairlineWidth, borderTopColor: colors.hairline }]}>
           <Text style={[type.eyebrow, { color: colors.inkMuted }]}>Ana Ekran Widget'ı</Text>
-          <View style={[styles.widgetBox, { backgroundColor: colors.bone }]}>
-            <Feather name="layout" size={20} color={colors.accent} />
+
+          {/* Mini Canlı Widget Önizleme Kartı */}
+          <View style={[styles.widgetCard, { backgroundColor: colors.bone, borderColor: colors.hairline }]}>
+            <View style={styles.widgetHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Feather name="calendar" size={14} color={colors.accent} />
+                <Text style={[styles.widgetHeaderTitle, { color: colors.ink }]}>OSIF Hızlı Bakış</Text>
+              </View>
+              <Text style={[type.meta, { fontSize: 11, color: colors.inkMuted }]}>Önizleme</Text>
+            </View>
+
+            {upcomingForWidget.length === 0 ? (
+              <View style={{ paddingVertical: space.md, alignItems: 'center' }}>
+                <Text style={[type.meta, { color: colors.inkMuted }]}>Henüz yaklaşan bir özel gün yok.</Text>
+              </View>
+            ) : (
+              upcomingForWidget.map((c, idx) => {
+                const days = c.days_until_next_birthday ?? 0;
+                const daysText = days === 0 ? 'Bugün!' : `${days} gün`;
+                const statusLabel = GIFT_STATUS_LABEL[c.gift_status] || c.gift_status;
+                const isReady = c.gift_status === 'ready';
+
+                return (
+                  <View
+                    key={c.id}
+                    style={[
+                      styles.widgetRow,
+                      idx < upcomingForWidget.length - 1 && { borderBottomWidth: hairlineWidth, borderBottomColor: colors.hairline },
+                    ]}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.widgetContactName, { color: colors.ink }]} numberOfLines={1}>
+                        {c.name}
+                      </Text>
+                      <Text style={[type.meta, { fontSize: 11, color: colors.inkMuted }]}>
+                        {c.upcoming_age ? `${c.upcoming_age}. yaş  ·  ` : ''}{statusLabel}
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.widgetBadge,
+                        { backgroundColor: days === 0 ? colors.accent : isReady ? '#E0F2FE' : colors.canvas },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.widgetBadgeText,
+                          { color: days === 0 ? '#FFF' : isReady ? '#0369A1' : colors.ink },
+                        ]}
+                      >
+                        {daysText}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </View>
+
+          {/* Widget Ekle Butonu */}
+          <PressableScale
+            onPress={handleAddWidget}
+            hapticProfile="medium"
+            scaleTo={0.97}
+            style={[styles.addWidgetBtn, { backgroundColor: colors.ink }]}
+          >
+            <Feather name="plus-circle" size={16} color={colors.canvas} />
+            <Text style={[styles.addWidgetBtnText, { color: colors.canvas }]}>
+              {language === 'en' ? 'Add Widget to Home Screen' : 'Ana Ekrana Widget Ekle'}
+            </Text>
+          </PressableScale>
+
+          {/* Açıklama & Durum Bilgilendirmesi */}
+          <View style={[styles.widgetInfoBox, { backgroundColor: colors.canvas, borderColor: colors.hairline }]}>
+            <Feather name="info" size={16} color={colors.accent} style={{ marginTop: 2 }} />
             <View style={{ flex: 1 }}>
-              <Text style={[styles.widgetBoxTitle, { color: colors.ink }]}>Hızlı Bakış Widget'ı</Text>
-              <Text style={[type.meta, { color: colors.inkMuted, fontSize: 13, marginTop: 2 }]}>
-                OSIF verileriniz SQLite üzerinde yerel saklanır. Cihaz widget'ı kurularak yaklaşan doğum günleri ve kalan günler ana ekranda görüntülenebilir.
+              <Text style={[styles.widgetInfoTitle, { color: colors.ink }]}>
+                {language === 'en' ? 'Home Screen Widget Guide' : 'Ana Ekran Widget Rehberi'}
+              </Text>
+              <Text style={[type.meta, { color: colors.inkMuted, fontSize: 12, lineHeight: 18, marginTop: 4 }]}>
+                {language === 'en'
+                  ? 'Tap the button above to add the widget directly to your home screen. You can also press and hold on an empty area of your phone screen and add "OSIF" from the Widgets menu.'
+                  : 'Yukarıdaki butona basarak widget\'ı doğrudan ana ekranınıza ekleyebilirsiniz. Ayrıca telefonunuzun ana ekranında boş bir alana basılı tutup "Widget\'lar" menüsünden "OSIF Hızlı Bakış"ı seçerek de ekleyebilirsiniz.'}
               </Text>
             </View>
           </View>
@@ -360,15 +530,78 @@ const styles = StyleSheet.create({
   zodiacSymbol: { fontSize: 14 },
   zodiacName: { fontFamily: fonts.sans, fontSize: 12 },
   zodiacCount: { fontFamily: fonts.sans, fontSize: 11 },
-  widgetBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: space.md,
+  widgetCard: {
+    marginTop: space.md,
+    borderRadius: 10,
+    borderWidth: 1,
     padding: space.md,
-    borderRadius: 6,
+  },
+  widgetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: space.sm,
+    paddingBottom: 6,
+    borderBottomWidth: hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.08)',
+  },
+  widgetHeaderTitle: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  widgetRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  widgetContactName: {
+    fontFamily: fonts.serif,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  widgetBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  widgetBadgeText: {
+    fontFamily: fonts.sans,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  addWidgetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space.sm,
+    paddingVertical: 14,
+    borderRadius: 8,
     marginTop: space.md,
   },
-  widgetBoxTitle: { fontFamily: fonts.serif, fontSize: 16 },
+  addWidgetBtnText: {
+    fontFamily: fonts.sans,
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  widgetInfoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: space.sm,
+    padding: space.md,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: space.md,
+  },
+  widgetInfoTitle: {
+    fontFamily: fonts.sans,
+    fontSize: 13,
+    fontWeight: '600',
+  },
   jsonTextInput: {
     flex: 1,
     fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }),

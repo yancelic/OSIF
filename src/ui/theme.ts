@@ -57,8 +57,8 @@ export const type = StyleSheet.create({
     fontFamily: fonts.sans,
     fontSize: 11,
     lineHeight: 16,
-    letterSpacing: 1.6,
-    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    fontWeight: '600',
     color: colors.inkMuted,
   },
 });

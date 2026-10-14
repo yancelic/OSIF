@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -41,13 +42,14 @@ const REMINDER_DAY_OPTIONS = [
 ];
 
 export const EditContactModal: React.FC<Props> = ({ visible, contact, onClose, onUpdated }) => {
-  const { updateContactFull, themeMode } = useApp();
+  const { updateContactFull, themeMode, language } = useApp();
   const colors = getThemeColors(themeMode);
 
   const [formName, setFormName] = useState('');
   const [formDate, setFormDate] = useState('');
   const [formEventType, setFormEventType] = useState<EventType>('birthday');
   const [formTier, setFormTier] = useState<PriorityTier>(2);
+  const [formBuyGift, setFormBuyGift] = useState(true);
   const [formClothing, setFormClothing] = useState('');
   const [formShoes, setFormShoes] = useState('');
   const [formTargetBudget, setFormTargetBudget] = useState('');
@@ -55,6 +57,7 @@ export const EditContactModal: React.FC<Props> = ({ visible, contact, onClose, o
   const [customDays, setCustomDays] = useState<number[]>([]);
   const [customTime, setCustomTime] = useState('09:00');
   const [useCustomReminders, setUseCustomReminders] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const dateConfig = useMemo(() => getDeviceDateConfig(), []);
 
@@ -77,6 +80,7 @@ export const EditContactModal: React.FC<Props> = ({ visible, contact, onClose, o
 
       setFormEventType(contact.event_type || 'birthday');
       setFormTier(contact.priority_tier || 2);
+      setFormBuyGift(contact.buy_gift !== 0);
       setFormClothing(contact.clothing_size || '');
       setFormShoes(contact.shoe_size || '');
       setFormTargetBudget(contact.target_budget != null ? String(contact.target_budget) : '');
@@ -115,17 +119,26 @@ export const EditContactModal: React.FC<Props> = ({ visible, contact, onClose, o
   };
 
   const handleSave = async () => {
+    if (isSubmitting) return;
+    Keyboard.dismiss();
     if (!contact) return;
+
     const date = parseDateInput(formDate, dateConfig.order);
     if (!formName.trim() || !date) {
       haptic('medium');
-      Alert.alert('Eksik bilgi', `İsim ve geçerli bir tarih (${dateConfig.placeholder}) gerekli.`);
+      Alert.alert(
+        language === 'en' ? 'Missing info' : 'Eksik bilgi',
+        language === 'en'
+          ? `Name and valid date (${dateConfig.placeholder}) required.`
+          : `İsim ve geçerli bir tarih (${dateConfig.placeholder}) gerekli.`
+      );
       return;
     }
 
+    setIsSubmitting(true);
     try {
-      const budgetNum = formTargetBudget.trim() ? parseFloat(formTargetBudget.replace(',', '.')) : null;
-      const spentNum = formSpentAmount.trim() ? parseFloat(formSpentAmount.replace(',', '.')) : null;
+      const budgetNum = formBuyGift && formTargetBudget.trim() ? parseFloat(formTargetBudget.replace(',', '.')) : null;
+      const spentNum = formBuyGift && formSpentAmount.trim() ? parseFloat(formSpentAmount.replace(',', '.')) : null;
 
       await updateContactFull(contact.id, {
         name: formName.trim(),
@@ -134,12 +147,13 @@ export const EditContactModal: React.FC<Props> = ({ visible, contact, onClose, o
         birth_day: date.day,
         event_type: formEventType,
         priority_tier: formTier,
-        clothing_size: formClothing.trim() || null,
-        shoe_size: formShoes.trim() || null,
+        clothing_size: formBuyGift ? (formClothing.trim() || null) : null,
+        shoe_size: formBuyGift ? (formShoes.trim() || null) : null,
         target_budget: isNaN(budgetNum as number) ? null : budgetNum,
         spent_amount: isNaN(spentNum as number) ? null : spentNum,
         custom_notification_days: useCustomReminders ? JSON.stringify(customDays) : null,
         custom_notification_time: useCustomReminders ? customTime.trim() || '09:00' : null,
+        buy_gift: formBuyGift ? 1 : 0,
       });
 
       haptic('success');
@@ -147,7 +161,9 @@ export const EditContactModal: React.FC<Props> = ({ visible, contact, onClose, o
       if (onUpdated) onUpdated();
     } catch (e) {
       haptic('medium');
-      Alert.alert('Güncellenemedi', e instanceof Error ? e.message : String(e));
+      Alert.alert(language === 'en' ? 'Could not update' : 'Güncellenemedi', e instanceof Error ? e.message : String(e));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -157,7 +173,7 @@ export const EditContactModal: React.FC<Props> = ({ visible, contact, onClose, o
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <ScrollView
             contentContainerStyle={[styles.content, { paddingBottom: space.xxl * 2 }]}
-            keyboardShouldPersistTaps="handled"
+            keyboardShouldPersistTaps="always"
             keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             showsVerticalScrollIndicator={false}
           >
@@ -235,38 +251,71 @@ export const EditContactModal: React.FC<Props> = ({ visible, contact, onClose, o
               ))}
             </View>
 
-            {/* Bütçe & Harcama */}
-            <View style={{ flexDirection: 'row', gap: space.lg, marginTop: space.lg }}>
-              <View style={{ flex: 1 }}>
-                <Text style={[type.eyebrow, { color: colors.inkMuted }]}>Hedef Bütçe (TL)</Text>
-                <TextInput
-                  value={formTargetBudget}
-                  onChangeText={setFormTargetBudget}
-                  placeholder="örn: 1500"
-                  placeholderTextColor={colors.inkFaint}
-                  keyboardType="numeric"
-                  selectionColor={colors.accent}
-                  style={[styles.input, { color: colors.ink, borderBottomColor: colors.ink }]}
-                />
+            {/* Hediye Alınacak mı? Seçeneği */}
+            <PressableScale
+              onPress={() => {
+                haptic('selection');
+                setFormBuyGift(!formBuyGift);
+              }}
+              style={[styles.giftToggleBox, { backgroundColor: colors.bone }]}
+            >
+              <View style={{ flex: 1, paddingRight: space.md }}>
+                <Text style={[styles.giftToggleTitle, { color: colors.ink }]}>
+                  {language === 'en' ? 'Buy a gift for this person?' : 'Bu kişi için hediye alınacak mı?'}
+                </Text>
+                <Text style={[type.meta, { fontSize: 12, color: colors.inkMuted, marginTop: 2 }]}>
+                  {formBuyGift
+                    ? (language === 'en' ? 'Gift & birthday reminders will be sent.' : 'Hediye ve doğum günü hatırlatması gönderilir.')
+                    : (language === 'en' ? 'Only birthday reminder will be sent.' : 'Yalnızca doğum günü hatırlatması gönderilir.')}
+                </Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[type.eyebrow, { color: colors.inkMuted }]}>Harcanan (TL)</Text>
-                <TextInput
-                  value={formSpentAmount}
-                  onChangeText={setFormSpentAmount}
-                  placeholder="örn: 1200"
-                  placeholderTextColor={colors.inkFaint}
-                  keyboardType="numeric"
-                  selectionColor={colors.accent}
-                  style={[styles.input, { color: colors.ink, borderBottomColor: colors.ink }]}
-                />
+              <Feather
+                name={formBuyGift ? 'check-square' : 'square'}
+                size={22}
+                color={formBuyGift ? colors.accent : colors.inkMuted}
+              />
+            </PressableScale>
+
+            {/* Bütçe & Harcama (Yalnızca hediye takibi açıksa) */}
+            {formBuyGift && (
+              <View style={{ flexDirection: 'row', gap: space.lg, marginTop: space.lg }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[type.eyebrow, { color: colors.inkMuted }]}>
+                    {language === 'en' ? 'Target Budget' : 'Hedef Bütçe (TL)'}
+                  </Text>
+                  <TextInput
+                    value={formTargetBudget}
+                    onChangeText={setFormTargetBudget}
+                    placeholder="örn: 1500"
+                    placeholderTextColor={colors.inkFaint}
+                    keyboardType="numeric"
+                    selectionColor={colors.accent}
+                    style={[styles.input, { color: colors.ink, borderBottomColor: colors.ink }]}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[type.eyebrow, { color: colors.inkMuted }]}>
+                    {language === 'en' ? 'Spent' : 'Harcanan (TL)'}
+                  </Text>
+                  <TextInput
+                    value={formSpentAmount}
+                    onChangeText={setFormSpentAmount}
+                    placeholder="örn: 1200"
+                    placeholderTextColor={colors.inkFaint}
+                    keyboardType="numeric"
+                    selectionColor={colors.accent}
+                    style={[styles.input, { color: colors.ink, borderBottomColor: colors.ink }]}
+                  />
+                </View>
               </View>
-            </View>
+            )}
 
             {/* Özel Hatırlatma Ayarları */}
             <View style={{ marginTop: space.xl, paddingVertical: space.md, borderTopWidth: hairlineWidth, borderTopColor: colors.hairline }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={[type.eyebrow, { color: colors.inkMuted }]}>Özel Bildirim Günleri</Text>
+                <Text style={[type.eyebrow, { color: colors.inkMuted }]}>
+                  {language === 'en' ? 'Custom Reminder Days' : 'Özel Bildirim Günleri'}
+                </Text>
                 <PressableScale
                   onPress={() => {
                     haptic('selection');
@@ -275,7 +324,9 @@ export const EditContactModal: React.FC<Props> = ({ visible, contact, onClose, o
                   style={styles.toggleBtn}
                 >
                   <Text style={[styles.toggleText, { color: useCustomReminders ? colors.accent : colors.inkFaint }]}>
-                    {useCustomReminders ? 'Özel Aktif' : 'Varsayılan Kurallar'}
+                    {useCustomReminders
+                      ? (language === 'en' ? 'Custom Active' : 'Özel Aktif')
+                      : (language === 'en' ? 'Default Rules' : 'Varsayılan Kurallar')}
                   </Text>
                 </PressableScale>
               </View>
@@ -283,7 +334,7 @@ export const EditContactModal: React.FC<Props> = ({ visible, contact, onClose, o
               {useCustomReminders && (
                 <View style={{ marginTop: space.md }}>
                   <Text style={[type.meta, { color: colors.inkMuted, marginBottom: space.sm, fontSize: 12 }]}>
-                    Bildirim almak istediğiniz günleri seçin:
+                    {language === 'en' ? 'Select notification days:' : 'Bildirim almak istediğiniz günleri seçin:'}
                   </Text>
                   <View style={styles.chipRow}>
                     {REMINDER_DAY_OPTIONS.map((item) => {
@@ -306,7 +357,9 @@ export const EditContactModal: React.FC<Props> = ({ visible, contact, onClose, o
                   </View>
 
                   <View style={{ marginTop: space.md, flexDirection: 'row', alignItems: 'center', gap: space.md }}>
-                    <Text style={[type.meta, { color: colors.ink }]}>Hatırlatma Saati:</Text>
+                    <Text style={[type.meta, { color: colors.ink }]}>
+                      {language === 'en' ? 'Reminder Time:' : 'Hatırlatma Saati:'}
+                    </Text>
                     <TextInput
                       value={customTime}
                       onChangeText={setCustomTime}
@@ -320,37 +373,52 @@ export const EditContactModal: React.FC<Props> = ({ visible, contact, onClose, o
               )}
             </View>
 
-            {/* Beden & Ayakkabı */}
-            <View style={{ flexDirection: 'row', gap: space.lg, marginTop: space.md }}>
-              <View style={{ flex: 1 }}>
-                <Text style={[type.eyebrow, { color: colors.inkMuted }]}>Beden</Text>
-                <TextInput
-                  value={formClothing}
-                  onChangeText={setFormClothing}
-                  placeholder="M"
-                  placeholderTextColor={colors.inkFaint}
-                  style={[styles.input, { color: colors.ink, borderBottomColor: colors.ink }]}
-                />
+            {/* Beden & Ayakkabı (Yalnızca hediye takibi açıksa) */}
+            {formBuyGift && (
+              <View style={{ flexDirection: 'row', gap: space.lg, marginTop: space.md }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[type.eyebrow, { color: colors.inkMuted }]}>
+                    {language === 'en' ? 'Clothing Size' : 'Kıyafet Bedeni'}
+                  </Text>
+                  <TextInput
+                    value={formClothing}
+                    onChangeText={setFormClothing}
+                    placeholder="M"
+                    placeholderTextColor={colors.inkFaint}
+                    style={[styles.input, { color: colors.ink, borderBottomColor: colors.ink }]}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[type.eyebrow, { color: colors.inkMuted }]}>
+                    {language === 'en' ? 'Shoe Size' : 'Ayakkabı Numarası'}
+                  </Text>
+                  <TextInput
+                    value={formShoes}
+                    onChangeText={setFormShoes}
+                    placeholder="42"
+                    placeholderTextColor={colors.inkFaint}
+                    style={[styles.input, { color: colors.ink, borderBottomColor: colors.ink }]}
+                  />
+                </View>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[type.eyebrow, { color: colors.inkMuted }]}>Ayakkabı</Text>
-                <TextInput
-                  value={formShoes}
-                  onChangeText={setFormShoes}
-                  placeholder="42"
-                  placeholderTextColor={colors.inkFaint}
-                  style={[styles.input, { color: colors.ink, borderBottomColor: colors.ink }]}
-                />
-              </View>
-            </View>
+            )}
 
             {/* Kaydet Butonu */}
             <PressableScale
               onPress={handleSave}
+              disabled={isSubmitting}
               hapticProfile="medium"
-              style={[styles.saveBtn, { backgroundColor: colors.ink, marginTop: space.xxl }]}
+              style={[
+                styles.saveBtn,
+                { backgroundColor: colors.ink, marginTop: space.xxl },
+                isSubmitting && { opacity: 0.6 },
+              ]}
             >
-              <Text style={[styles.saveBtnText, { color: colors.canvas }]}>Değişiklikleri Kaydet</Text>
+              <Text style={[styles.saveBtnText, { color: colors.canvas }]}>
+                {isSubmitting
+                  ? (language === 'en' ? 'Saving Changes…' : 'Kaydediliyor…')
+                  : (language === 'en' ? 'Save Changes' : 'Değişiklikleri Kaydet')}
+              </Text>
             </PressableScale>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -400,4 +468,13 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   saveBtnText: { fontFamily: fonts.sans, fontSize: 14, letterSpacing: 0.6, fontWeight: '600' },
+  giftToggleBox: {
+    padding: space.md,
+    borderRadius: 8,
+    marginTop: space.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  giftToggleTitle: { fontFamily: fonts.serif, fontSize: 15 },
 });

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  BackHandler,
   NativeScrollEvent,
   NativeSyntheticEvent,
   ScrollView,
@@ -17,6 +18,7 @@ import { DebugScreen } from './src/screens/DebugScreen';
 import { OSIFSplash } from './src/ui/OSIFSplash';
 import { PressableScale } from './src/ui/PressableScale';
 import { getThemeColors, fonts, hairlineWidth, space } from './src/ui/theme';
+import { t } from './src/utils/i18n';
 
 const SCREENS = ['dashboard', 'contact_detail', 'settings', 'debug'] as const;
 const SCREEN_INDEXES: Record<string, number> = {
@@ -49,7 +51,7 @@ const TabItem: React.FC<{
 );
 
 const MainNavigator: React.FC = () => {
-  const { activeScreen, navigateTo, selectContact, selectedContactId, themeMode } = useApp();
+  const { activeScreen, navigateTo, selectContact, selectedContactId, themeMode, language } = useApp();
   const colors = getThemeColors(themeMode);
   const { width } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
@@ -63,6 +65,24 @@ const MainNavigator: React.FC = () => {
       scrollRef.current.scrollTo({ x: targetIndex * width, animated: true });
     }
   }, [activeScreen, width]);
+
+  // Android Donanım Geri Tuşu: İç menüdeysek (seçili kişi) dışa dön, değilse ve ana menüde değilsek Dashboard'a dön
+  useEffect(() => {
+    const onBackPress = () => {
+      if (selectedContactId) {
+        selectContact(null);
+        return true;
+      }
+      if (activeScreen !== 'dashboard') {
+        navigateTo('dashboard');
+        return true;
+      }
+      return false;
+    };
+
+    const backSubscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => backSubscription.remove();
+  }, [selectedContactId, activeScreen, selectContact, navigateTo]);
 
   const handleMomentumScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = e.nativeEvent.contentOffset.x;
@@ -91,6 +111,7 @@ const MainNavigator: React.FC = () => {
         directionalLockEnabled={true}
         showsHorizontalScrollIndicator={false}
         bounces={false}
+        scrollEnabled={!selectedContactId}
         scrollEventThrottle={16}
         onMomentumScrollEnd={handleMomentumScrollEnd}
         style={{ flex: 1 }}
@@ -112,10 +133,10 @@ const MainNavigator: React.FC = () => {
 
       <SafeAreaView style={[styles.tabBar, { backgroundColor: colors.canvas, borderTopColor: colors.hairline }]} edges={['bottom', 'left', 'right']}>
         <View style={styles.tabRow}>
-          <TabItem label="Yaklaşanlar" active={activeScreen === 'dashboard'} onPress={() => navigateTo('dashboard')} colors={colors} />
-          <TabItem label="Kişiler" active={activeScreen === 'contact_detail'} onPress={handleContactsTabPress} colors={colors} />
-          <TabItem label="Ayarlar" active={activeScreen === 'settings'} onPress={() => navigateTo('settings')} colors={colors} />
-          <TabItem label="Geliştirici" active={activeScreen === 'debug'} onPress={() => navigateTo('debug')} colors={colors} />
+          <TabItem label={t('tabUpcoming', language)} active={activeScreen === 'dashboard'} onPress={() => navigateTo('dashboard')} colors={colors} />
+          <TabItem label={t('tabContacts', language)} active={activeScreen === 'contact_detail'} onPress={handleContactsTabPress} colors={colors} />
+          <TabItem label={t('tabSettings', language)} active={activeScreen === 'settings'} onPress={() => navigateTo('settings')} colors={colors} />
+          <TabItem label={t('tabDeveloper', language)} active={activeScreen === 'debug'} onPress={() => navigateTo('debug')} colors={colors} />
         </View>
       </SafeAreaView>
     </View>
