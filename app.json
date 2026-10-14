@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "OSIF",
+    "slug": "osif",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true
+    },
+    "plugins": [
+      "expo-sqlite",
+      "expo-font",
+      "expo-localization"
+    ]
+  }
+}
