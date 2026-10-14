@@ -1,4 +1,4 @@
-# OSIF (One Special Important Fact)
+# OSIF (OH SHIT I FORGOT)
 
 Offline-first Birthday & Gift Tracking mobile application built with **Expo**, **React Native**, and **TypeScript**.
 
