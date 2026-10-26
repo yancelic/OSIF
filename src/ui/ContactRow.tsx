@@ -8,9 +8,12 @@ import { useApp } from '../context/AppContext';
 
 const MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 
-export const formatEventDate = (iso: string): string => {
-  const [, m, d] = iso.split('-').map(Number);
-  return `${d} ${MONTHS[(m || 1) - 1]}`;
+export const formatEventDate = (iso?: string | null): string => {
+  if (!iso || typeof iso !== 'string') return '';
+  const parts = iso.split('-').map(Number);
+  if (parts.length < 3) return iso;
+  const [, m, d] = parts;
+  return `${d} ${MONTHS[(m || 1) - 1] || ''}`;
 };
 
 interface Props {

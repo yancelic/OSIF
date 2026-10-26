@@ -93,6 +93,22 @@ export const ContactDetailScreen: React.FC = () => {
     return contacts.filter((c) => c.name.toLowerCase().includes(q));
   }, [contacts, searchQuery]);
 
+  // Hediye durumu ve composer etiketleri (React Hooks kuralı gereği koşulsuz olarak üstte olmalıdır)
+  const isGiftActive = (selectedContact?.buy_gift ?? 1) === 1;
+
+  const availableComposerTypes = useMemo(() => {
+    if (!isGiftActive) {
+      return COMPOSER_TYPES.filter((t) => t.key !== 'wishlist_item');
+    }
+    return COMPOSER_TYPES;
+  }, [isGiftActive]);
+
+  useEffect(() => {
+    if (!isGiftActive && draftType === 'wishlist_item') {
+      setDraftType('like');
+    }
+  }, [isGiftActive, draftType]);
+
   // Kişi seçili değilse: Bütün kişilerin listelendiği Rehber ekranı
   if (!selectedContact) {
     return (
@@ -190,8 +206,8 @@ export const ContactDetailScreen: React.FC = () => {
   }
 
   const c = selectedContact;
-  const tagsOf = (t: GiftTagType) => c.gift_tags.filter((g) => g.type === t);
-  const days = c.days_until_next_birthday;
+  const tagsOf = (t: GiftTagType) => (c.gift_tags || []).filter((g) => g.type === t);
+  const days = c.days_until_next_birthday ?? 0;
   const imminent = days <= 7;
 
   const eventLabel =
@@ -275,24 +291,10 @@ export const ContactDetailScreen: React.FC = () => {
     : (insets.bottom > 0 ? insets.bottom : space.sm);
 
   // Bütçe hesabı
-  const buyGift = c.buy_gift ?? 1;
-  const isGiftActive = buyGift === 1;
-  const hasBudget = c.target_budget != null && c.target_budget > 0;
-  const spent = c.spent_amount || 0;
-  const budgetRatio = hasBudget ? Math.min(1, spent / c.target_budget!) : 0;
-
-  const availableComposerTypes = useMemo(() => {
-    if (!isGiftActive) {
-      return COMPOSER_TYPES.filter((t) => t.key !== 'wishlist_item');
-    }
-    return COMPOSER_TYPES;
-  }, [isGiftActive]);
-
-  useEffect(() => {
-    if (!isGiftActive && draftType === 'wishlist_item') {
-      setDraftType('like');
-    }
-  }, [isGiftActive, draftType]);
+  const hasBudget = c.target_budget != null && !isNaN(Number(c.target_budget)) && Number(c.target_budget) > 0;
+  const spent = Number(c.spent_amount) || 0;
+  const targetBudgetNum = Number(c.target_budget) || 1;
+  const budgetRatio = hasBudget ? Math.min(1, Math.max(0, spent / targetBudgetNum)) : 0;
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]} edges={['top', 'left', 'right']}>
@@ -321,13 +323,13 @@ export const ContactDetailScreen: React.FC = () => {
           <View style={{ marginTop: space.xl }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
               <Text style={[type.eyebrow, { color: colors.inkMuted }]}>
-                {TIER_LABEL[c.priority_tier]}  ·  {formatEventDate(c.next_birthday_date)}
+                {(TIER_LABEL[c.priority_tier] || 'Arkadaş')}  ·  {formatEventDate(c.next_birthday_date)}
               </Text>
-              {c.zodiac_sign && (
+              {c.zodiac_sign?.symbol && c.zodiac_sign?.name ? (
                 <Text style={[type.eyebrow, { color: colors.accent }]}>
                   ·  {c.zodiac_sign.symbol} {c.zodiac_sign.name}
                 </Text>
-              )}
+              ) : null}
             </View>
             <Text style={[type.display, { marginTop: space.sm, color: colors.ink }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.7}>
               {c.name}
@@ -363,7 +365,7 @@ export const ContactDetailScreen: React.FC = () => {
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={[type.eyebrow, { color: colors.inkMuted }]}>Hediye Bütçesi</Text>
                 <Text style={[styles.budgetNumbers, { color: colors.ink }]}>
-                  {spent.toLocaleString('tr-TR')} TL / <Text style={{ color: colors.inkMuted }}>{c.target_budget?.toLocaleString('tr-TR')} TL</Text>
+                  {spent.toLocaleString('tr-TR')} TL / <Text style={{ color: colors.inkMuted }}>{targetBudgetNum.toLocaleString('tr-TR')} TL</Text>
                 </Text>
               </View>
               <View style={[styles.budgetTrack, { backgroundColor: colors.stone }]}>
@@ -500,9 +502,9 @@ export const ContactDetailScreen: React.FC = () => {
                     <Text style={[styles.historyYear, { color: colors.accent }]}>{hist.year}</Text>
                     <View style={{ flex: 1, paddingHorizontal: space.sm }}>
                       <Text style={[styles.historyTitle, { color: colors.ink }]}>{hist.title}</Text>
-                      {hist.price != null && (
+                      {hist.price != null && !isNaN(Number(hist.price)) && (
                         <Text style={[type.meta, { color: colors.inkMuted, fontSize: 12 }]}>
-                          {hist.price.toLocaleString('tr-TR')} TL
+                          {Number(hist.price).toLocaleString('tr-TR')} TL
                         </Text>
                       )}
                     </View>
@@ -615,55 +617,58 @@ const SizeInput: React.FC<{ label: string; value: string; onChangeText: (t: stri
 
 const TagSection: React.FC<{
   title: string;
-  tags: GiftTag[];
+  tags?: GiftTag[];
   empty: string;
   onRemove: (id: string) => void;
   onOpenUrl?: (url: string | null) => void;
   colors: any;
-}> = ({ title, tags, empty, onRemove, onOpenUrl, colors }) => (
-  <View>
-    <View style={[styles.sectionHead, { borderBottomColor: colors.hairline }]}>
-      <Text style={[type.eyebrow, { color: colors.inkMuted }]}>{title}</Text>
-      <Text style={[styles.count, { color: colors.inkFaint }]}>{tags.length}</Text>
-    </View>
-    {tags.length === 0 ? (
-      <Text style={[styles.empty, { color: colors.inkFaint }]}>{empty}</Text>
-    ) : (
-      tags.map((tag, i) => (
-        <Animated.View
-          key={tag.id}
-          entering={FadeInDown.duration(220)}
-          exiting={FadeOutLeft.duration(180)}
-          layout={LinearTransition.springify().damping(18)}
-          style={[styles.tagRow, { borderBottomColor: colors.hairline }]}
-        >
-          <Text style={[styles.tagIndex, { color: colors.inkFaint }]}>{String(i + 1).padStart(2, '0')}</Text>
-          <View style={{ flex: 1, paddingRight: space.md }}>
-            <Text style={[styles.tagTitle, { color: colors.ink }]} numberOfLines={2}>{tag.title}</Text>
-            {tag.url && (
-              <PressableScale onPress={() => onOpenUrl && onOpenUrl(tag.url)} style={styles.tagLinkRow}>
-                <Feather name="external-link" size={12} color={colors.accent} />
-                <Text style={[styles.tagLinkText, { color: colors.accent }]} numberOfLines={1}>
-                  {tag.url.replace(/^https?:\/\//, '')}
-                </Text>
-              </PressableScale>
-            )}
-          </View>
-          <PressableScale
-            onPress={() => onRemove(tag.id)}
-            hapticProfile="light"
-            hitSlop={14}
-            scaleTo={0.8}
-            accessibilityRole="button"
-            accessibilityLabel={`${tag.title} sil`}
+}> = ({ title, tags = [], empty, onRemove, onOpenUrl, colors }) => {
+  const safeTags = tags || [];
+  return (
+    <View>
+      <View style={[styles.sectionHead, { borderBottomColor: colors.hairline }]}>
+        <Text style={[type.eyebrow, { color: colors.inkMuted }]}>{title}</Text>
+        <Text style={[styles.count, { color: colors.inkFaint }]}>{safeTags.length}</Text>
+      </View>
+      {safeTags.length === 0 ? (
+        <Text style={[styles.empty, { color: colors.inkFaint }]}>{empty}</Text>
+      ) : (
+        safeTags.map((tag, i) => (
+          <Animated.View
+            key={tag.id}
+            entering={FadeInDown.duration(220)}
+            exiting={FadeOutLeft.duration(180)}
+            layout={LinearTransition.springify().damping(18)}
+            style={[styles.tagRow, { borderBottomColor: colors.hairline }]}
           >
-            <Feather name="x" size={16} color={colors.inkFaint} />
-          </PressableScale>
-        </Animated.View>
-      ))
-    )}
-  </View>
-);
+            <Text style={[styles.tagIndex, { color: colors.inkFaint }]}>{String(i + 1).padStart(2, '0')}</Text>
+            <View style={{ flex: 1, paddingRight: space.md }}>
+              <Text style={[styles.tagTitle, { color: colors.ink }]} numberOfLines={2}>{tag.title}</Text>
+              {typeof tag.url === 'string' && tag.url.trim().length > 0 && (
+                <PressableScale onPress={() => onOpenUrl && onOpenUrl(tag.url)} style={styles.tagLinkRow}>
+                  <Feather name="external-link" size={12} color={colors.accent} />
+                  <Text style={[styles.tagLinkText, { color: colors.accent }]} numberOfLines={1}>
+                    {tag.url.replace(/^https?:\/\//, '')}
+                  </Text>
+                </PressableScale>
+              )}
+            </View>
+            <PressableScale
+              onPress={() => onRemove(tag.id)}
+              hapticProfile="light"
+              hitSlop={14}
+              scaleTo={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={`${tag.title} sil`}
+            >
+              <Feather name="x" size={16} color={colors.inkFaint} />
+            </PressableScale>
+          </Animated.View>
+        ))
+      )}
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
