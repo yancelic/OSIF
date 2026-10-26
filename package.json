@@ -4,12 +4,17 @@
   "description": "Offline-first Birthday & Gift Tracking Data Layer for Expo SDK 52",
   "main": "index.js",
   "scripts": {
-    "test:math": "npx ts-node -O \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/verify-math.ts"
+    "test:math": "npx ts-node -O \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/verify-math.ts",
+    "test:cultural": "npx ts-node -O \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/verify-cultural-dates.ts",
+    "test:v2": "npx ts-node -O \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/verify-v2-features.ts",
+    "test:all": "npm run test:math && npm run test:cultural && npm run test:v2"
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.17",
     "@expo/vector-icons": "^15.0.2",
     "expo": "~57.0.28",
+    "expo-calendar": "~57.0.6",
+    "expo-contacts": "~57.0.8",
     "expo-font": "~57.0.4",
     "expo-haptics": "~57.0.3",
     "expo-localization": "~57.0.2",

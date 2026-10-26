@@ -23,6 +23,8 @@ import { haptic } from '../ui/haptics';
 import { getComposerPlaceholder, TIER_LABEL } from '../ui/labels';
 import { AddContactModal } from '../ui/AddContactModal';
 import { EditContactModal } from '../ui/EditContactModal';
+import { CalendarImportModal } from '../ui/CalendarImportModal';
+import { CulturalCatalogModal } from '../ui/CulturalCatalogModal';
 import { fonts, getThemeColors, hairlineWidth, space, type } from '../ui/theme';
 
 const COMPOSER_TYPES: { key: GiftTagType; label: string }[] = [
@@ -44,6 +46,7 @@ export const ContactDetailScreen: React.FC = () => {
     addGiftHistoryItem,
     deleteGiftHistoryItem,
     themeMode,
+    language,
   } = useApp();
 
   const colors = getThemeColors(themeMode);
@@ -61,6 +64,8 @@ export const ContactDetailScreen: React.FC = () => {
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isCalendarImportOpen, setIsCalendarImportOpen] = useState(false);
+  const [isCulturalCatalogOpen, setIsCulturalCatalogOpen] = useState(false);
 
   // Geçmiş hediye ekleme paneli
   const [showAddHistory, setShowAddHistory] = useState(false);
@@ -136,6 +141,35 @@ export const ContactDetailScreen: React.FC = () => {
             ) : null}
           </View>
 
+          {/* Hızlı İşlemler: Takvimden Aktar & Özel Günler */}
+          <View style={styles.quickActionsBar}>
+            <PressableScale
+              onPress={() => {
+                haptic('light');
+                setIsCalendarImportOpen(true);
+              }}
+              style={[styles.quickActionPill, { backgroundColor: colors.bone, borderColor: colors.hairline }]}
+            >
+              <Feather name="download-cloud" size={13} color={colors.accent} />
+              <Text style={[styles.quickActionText, { color: colors.ink }]}>
+                {language === 'en' ? 'Import from Calendar' : 'Takvimden Aktar'}
+              </Text>
+            </PressableScale>
+
+            <PressableScale
+              onPress={() => {
+                haptic('light');
+                setIsCulturalCatalogOpen(true);
+              }}
+              style={[styles.quickActionPill, { backgroundColor: colors.bone, borderColor: colors.hairline }]}
+            >
+              <Feather name="gift" size={13} color={colors.accent} />
+              <Text style={[styles.quickActionText, { color: colors.ink }]}>
+                {language === 'en' ? 'Special Days' : 'Özel Günler'}
+              </Text>
+            </PressableScale>
+          </View>
+
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 110, paddingTop: space.sm }}
@@ -200,6 +234,14 @@ export const ContactDetailScreen: React.FC = () => {
         <AddContactModal
           visible={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}
+        />
+        <CalendarImportModal
+          visible={isCalendarImportOpen}
+          onClose={() => setIsCalendarImportOpen(false)}
+        />
+        <CulturalCatalogModal
+          visible={isCulturalCatalogOpen}
+          onClose={() => setIsCulturalCatalogOpen(false)}
         />
       </SafeAreaView>
     );
@@ -803,7 +845,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     paddingVertical: Platform.OS === 'ios' ? 10 : 6,
     marginTop: space.lg,
+    marginBottom: space.xs,
+  },
+  quickActionsBar: {
+    flexDirection: 'row',
+    gap: space.sm,
     marginBottom: space.sm,
+  },
+  quickActionPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    borderWidth: hairlineWidth,
+  },
+  quickActionText: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    fontWeight: '500',
   },
   searchInput: {
     flex: 1,

@@ -10,6 +10,7 @@ import {
   ContactWithDetails,
   GiftStatus,
   EventType,
+  PriorityTier,
 } from './types';
 import { calculateBirthdayDetails, validateBirthDate } from './utils/birthday';
 import { generateId } from './utils/id';
@@ -721,6 +722,57 @@ export async function importFullDatabaseJSON(jsonString: string): Promise<{ cont
   });
 
   return { contactsCount: parsed.contacts.length };
+}
+
+/**
+ * Takvim ve rehberden aktarılan kişileri veritabanına toplu yazar veya mevcutları günceller.
+ */
+export async function batchImportCalendarCandidates(
+  candidates: {
+    id: string;
+    name: string;
+    birthMonth: number;
+    birthDay: number;
+    birthYear: number | null;
+    isAlreadyInDb: boolean;
+    existingContactId?: string;
+    selectedPriorityTier: PriorityTier;
+  }[]
+): Promise<{ insertedCount: number; updatedCount: number; affectedIds: string[] }> {
+  const db = await getDatabase();
+  await initDatabase(db);
+
+  let insertedCount = 0;
+  let updatedCount = 0;
+  const affectedIds: string[] = [];
+
+  await db.withTransactionAsync(async () => {
+    for (const c of candidates) {
+      if (!c.name || !c.birthMonth || !c.birthDay) continue;
+
+      if (c.isAlreadyInDb && c.existingContactId) {
+        // Mevcut kaydı güncelle (Notlara, bedenlere ve etiketlere dokunmadan sadece tarih ve öncelik)
+        await db.runAsync(
+          `UPDATE contacts SET birth_month = ?, birth_day = ?, birth_year = COALESCE(?, birth_year), priority_tier = ? WHERE id = ?`,
+          [c.birthMonth, c.birthDay, c.birthYear, c.selectedPriorityTier, c.existingContactId]
+        );
+        updatedCount++;
+        affectedIds.push(c.existingContactId);
+      } else {
+        const newId = generateId();
+        await db.runAsync(
+          `INSERT INTO contacts (
+            id, name, birth_month, birth_day, birth_year, priority_tier, gift_status, event_type, buy_gift
+          ) VALUES (?, ?, ?, ?, ?, ?, 'not_started', 'birthday', 1)`,
+          [newId, c.name.trim(), c.birthMonth, c.birthDay, c.birthYear, c.selectedPriorityTier]
+        );
+        insertedCount++;
+        affectedIds.push(newId);
+      }
+    }
+  });
+
+  return { insertedCount, updatedCount, affectedIds };
 }
 
 /**

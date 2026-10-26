@@ -19,6 +19,8 @@ import { fonts, getThemeColors, hairlineWidth, space, type } from '../ui/theme';
 import { GIFT_STATUS_LABEL } from '../ui/labels';
 import { pinOSIFWidget } from '../widgets/widgetTaskHandler';
 import { t } from '../utils/i18n';
+import { CalendarImportModal } from '../ui/CalendarImportModal';
+import { CulturalCatalogModal } from '../ui/CulturalCatalogModal';
 
 const MONTH_NAMES = [
   'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz',
@@ -26,13 +28,57 @@ const MONTH_NAMES = [
 ];
 
 export const SettingsScreen: React.FC = () => {
-  const { contacts, themeMode, setThemeMode, exportDataJSON, importDataJSON, language, setLanguage } = useApp();
+  const {
+    contacts,
+    themeMode,
+    setThemeMode,
+    exportDataJSON,
+    importDataJSON,
+    language,
+    setLanguage,
+    isDevMode,
+    toggleDevMode,
+  } = useApp();
   const colors = getThemeColors(themeMode);
 
   const [importModalVisible, setImportModalVisible] = useState(false);
+  const [calendarModalVisible, setCalendarModalVisible] = useState(false);
+  const [catalogModalVisible, setCatalogModalVisible] = useState(false);
   const [importJsonText, setImportJsonText] = useState('');
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [isAddingWidget, setIsAddingWidget] = useState(false);
+
+  const tapCountRef = React.useRef(0);
+  const lastTapTimeRef = React.useRef(0);
+
+  const handleDevTrigger = async () => {
+    const now = Date.now();
+    if (now - lastTapTimeRef.current > 2500) {
+      tapCountRef.current = 0;
+    }
+    lastTapTimeRef.current = now;
+    tapCountRef.current += 1;
+
+    if (tapCountRef.current >= 5) {
+      tapCountRef.current = 0;
+      const next = await toggleDevMode();
+      haptic('success');
+      Alert.alert(
+        next
+          ? (language === 'en' ? 'Developer Mode Enabled' : 'Geliştirici Modu Açıldı')
+          : (language === 'en' ? 'Developer Mode Disabled' : 'Geliştirici Modu Gizlendi'),
+        next
+          ? (language === 'en'
+              ? 'The "Developer" tab is now visible in the navigation bar.'
+              : 'Geliştirici sekmesi alt menüde görünür hale getirildi.')
+          : (language === 'en'
+              ? 'The "Developer" tab is now hidden.'
+              : 'Geliştirici sekmesi alt menüden gizlendi.')
+      );
+    } else if (tapCountRef.current >= 2) {
+      haptic('selection');
+    }
+  };
 
   const handleAddWidget = async () => {
     if (isAddingWidget) return;
@@ -151,7 +197,28 @@ export const SettingsScreen: React.FC = () => {
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={[type.eyebrow, { color: colors.inkMuted }]}>Yapılandırma</Text>
-        <Text style={[type.display, { marginTop: space.sm, color: colors.ink }]}>Ayarlar</Text>
+        <PressableScale
+          onLongPress={async () => {
+            const next = await toggleDevMode();
+            haptic('success');
+            Alert.alert(
+              next
+                ? (language === 'en' ? 'Developer Mode Enabled' : 'Geliştirici Modu Açıldı')
+                : (language === 'en' ? 'Developer Mode Disabled' : 'Geliştirici Modu Gizlendi'),
+              next
+                ? (language === 'en'
+                    ? 'The "Developer" tab is now visible in the navigation bar.'
+                    : 'Geliştirici sekmesi alt menüde görünür hale getirildi.')
+                : (language === 'en'
+                    ? 'The "Developer" tab is now hidden.'
+                    : 'Geliştirici sekmesi alt menüden gizlendi.')
+            );
+          }}
+          delayLongPress={800}
+          hapticProfile="light"
+        >
+          <Text style={[type.display, { marginTop: space.sm, color: colors.ink }]}>Ayarlar</Text>
+        </PressableScale>
 
         {/* 1. Tema & Görünüm */}
         <View style={styles.section}>
@@ -278,6 +345,32 @@ export const SettingsScreen: React.FC = () => {
               </Text>
             </View>
             <Feather name="download" size={18} color={colors.ink} />
+          </PressableScale>
+
+          <PressableScale
+            onPress={() => setCalendarModalVisible(true)}
+            style={[styles.actionRow, { borderBottomColor: colors.hairline }]}
+          >
+            <View>
+              <Text style={[styles.actionTitle, { color: colors.ink }]}>Takvim & Rehberden İçe Aktar</Text>
+              <Text style={[type.meta, { color: colors.inkFaint, fontSize: 12 }]}>
+                Cihaz takvimindeki ve rehberdeki doğum günlerini tara
+              </Text>
+            </View>
+            <Feather name="calendar" size={18} color={colors.accent} />
+          </PressableScale>
+
+          <PressableScale
+            onPress={() => setCatalogModalVisible(true)}
+            style={[styles.actionRow, { borderBottomColor: colors.hairline }]}
+          >
+            <View>
+              <Text style={[styles.actionTitle, { color: colors.ink }]}>Kültürel Özel Günler Kataloğu</Text>
+              <Text style={[type.meta, { color: colors.inkFaint, fontSize: 12 }]}>
+                Anneler Günü, Babalar Günü, Sevgililer Günü, Yılbaşı şablonları
+              </Text>
+            </View>
+            <Feather name="gift" size={18} color={colors.accent} />
           </PressableScale>
         </View>
 
@@ -418,6 +511,15 @@ export const SettingsScreen: React.FC = () => {
           </View>
         </View>
 
+        {/* Sürüm & 5-Dokunuş Geliştirici Kısayolu */}
+        <View style={styles.versionFooter}>
+          <PressableScale onPress={handleDevTrigger} hitSlop={12} hapticProfile="none">
+            <Text style={[styles.versionText, { color: colors.inkFaint }]}>
+              OSIF v2.0.0{isDevMode ? '  ·  Dev Mode' : ''}
+            </Text>
+          </PressableScale>
+        </View>
+
         <View style={{ height: space.xxl }} />
       </ScrollView>
 
@@ -467,6 +569,16 @@ export const SettingsScreen: React.FC = () => {
           </View>
         </SafeAreaView>
       </Modal>
+
+      <CalendarImportModal
+        visible={calendarModalVisible}
+        onClose={() => setCalendarModalVisible(false)}
+      />
+
+      <CulturalCatalogModal
+        visible={catalogModalVisible}
+        onClose={() => setCatalogModalVisible(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -619,4 +731,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   importBtnText: { fontFamily: fonts.sans, fontSize: 14, letterSpacing: 0.6, fontWeight: '600' },
+  versionFooter: {
+    alignItems: 'center',
+    paddingVertical: space.xl,
+    marginTop: space.md,
+  },
+  versionText: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    letterSpacing: 0.8,
+  },
 });

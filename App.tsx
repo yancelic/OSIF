@@ -51,20 +51,38 @@ const TabItem: React.FC<{
 );
 
 const MainNavigator: React.FC = () => {
-  const { activeScreen, navigateTo, selectContact, selectedContactId, themeMode, language } = useApp();
+  const { activeScreen, navigateTo, selectContact, selectedContactId, themeMode, language, isDevMode } = useApp();
   const colors = getThemeColors(themeMode);
   const { width } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
   const isProgrammaticScroll = useRef(false);
 
+  const screens = isDevMode
+    ? (['dashboard', 'contact_detail', 'settings', 'debug'] as const)
+    : (['dashboard', 'contact_detail', 'settings'] as const);
+
+  const screenIndexes: Record<string, number> = {
+    dashboard: 0,
+    contact_detail: 1,
+    settings: 2,
+    ...(isDevMode ? { debug: 3 } : {}),
+  };
+
+  // Eğer geliştirici modu kapalıysa ve aktif ekran debug ise Dashboard'a yönlendir
+  useEffect(() => {
+    if (!isDevMode && activeScreen === 'debug') {
+      navigateTo('dashboard');
+    }
+  }, [isDevMode, activeScreen, navigateTo]);
+
   // Sekme veya kişi tıklamalarında hedefe animasyonlu kay
   useEffect(() => {
-    const targetIndex = SCREEN_INDEXES[activeScreen];
+    const targetIndex = screenIndexes[activeScreen];
     if (targetIndex !== undefined && scrollRef.current && width > 0) {
       isProgrammaticScroll.current = true;
       scrollRef.current.scrollTo({ x: targetIndex * width, animated: true });
     }
-  }, [activeScreen, width]);
+  }, [activeScreen, width, isDevMode]);
 
   // Android Donanım Geri Tuşu: İç menüdeysek (seçili kişi) dışa dön, değilse ve ana menüde değilsek Dashboard'a dön
   useEffect(() => {
@@ -87,7 +105,7 @@ const MainNavigator: React.FC = () => {
   const handleMomentumScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = e.nativeEvent.contentOffset.x;
     const pageIndex = Math.round(offsetX / width);
-    const target = SCREENS[pageIndex];
+    const target = screens[pageIndex];
     if (target && target !== activeScreen) {
       navigateTo(target);
     }
@@ -115,7 +133,7 @@ const MainNavigator: React.FC = () => {
         scrollEventThrottle={16}
         onMomentumScrollEnd={handleMomentumScrollEnd}
         style={{ flex: 1 }}
-        contentContainerStyle={{ width: width * 4 }}
+        contentContainerStyle={{ width: width * screens.length }}
       >
         <View style={{ width, flex: 1 }}>
           <DashboardScreen />
@@ -126,9 +144,11 @@ const MainNavigator: React.FC = () => {
         <View style={{ width, flex: 1 }}>
           <SettingsScreen />
         </View>
-        <View style={{ width, flex: 1 }}>
-          <DebugScreen />
-        </View>
+        {isDevMode && (
+          <View style={{ width, flex: 1 }}>
+            <DebugScreen />
+          </View>
+        )}
       </ScrollView>
 
       <SafeAreaView style={[styles.tabBar, { backgroundColor: colors.canvas, borderTopColor: colors.hairline }]} edges={['bottom', 'left', 'right']}>
@@ -136,7 +156,9 @@ const MainNavigator: React.FC = () => {
           <TabItem label={t('tabUpcoming', language)} active={activeScreen === 'dashboard'} onPress={() => navigateTo('dashboard')} colors={colors} />
           <TabItem label={t('tabContacts', language)} active={activeScreen === 'contact_detail'} onPress={handleContactsTabPress} colors={colors} />
           <TabItem label={t('tabSettings', language)} active={activeScreen === 'settings'} onPress={() => navigateTo('settings')} colors={colors} />
-          <TabItem label={t('tabDeveloper', language)} active={activeScreen === 'debug'} onPress={() => navigateTo('debug')} colors={colors} />
+          {isDevMode && (
+            <TabItem label={t('tabDeveloper', language)} active={activeScreen === 'debug'} onPress={() => navigateTo('debug')} colors={colors} />
+          )}
         </View>
       </SafeAreaView>
     </View>

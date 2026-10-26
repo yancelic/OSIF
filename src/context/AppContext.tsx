@@ -22,6 +22,7 @@ import {
   deleteGiftHistory,
   exportFullDatabaseJSON,
   importFullDatabaseJSON,
+  batchImportCalendarCandidates,
   seedDummyData,
   clearAllData,
   getAppSetting,
@@ -51,6 +52,7 @@ interface AppContextType {
   isMockActive: boolean;
   themeMode: ThemeMode;
   language: Language;
+  isDevMode: boolean;
   isReady: boolean;
   dbError: string | null;
   pendingNotifications: PendingNotification[];
@@ -60,6 +62,7 @@ interface AppContextType {
   selectContact: (contactId: string | null) => void;
   setThemeMode: (mode: ThemeMode) => void;
   setLanguage: (lang: Language) => Promise<void>;
+  toggleDevMode: () => Promise<boolean>;
 
   // Kişi & Hediye işlemleri (SQLite)
   setGiftStatus: (contactId: string, status: GiftStatus) => Promise<void>;
@@ -78,6 +81,18 @@ interface AppContextType {
   // Yedekleme (Backup & Restore)
   exportDataJSON: () => Promise<string>;
   importDataJSON: (json: string) => Promise<{ contactsCount: number }>;
+  importCalendarContacts: (
+    candidates: {
+      id: string;
+      name: string;
+      birthMonth: number;
+      birthDay: number;
+      birthYear: number | null;
+      isAlreadyInDb: boolean;
+      existingContactId?: string;
+      selectedPriorityTier: import('../types/index').PriorityTier;
+    }[]
+  ) => Promise<{ insertedCount: number; updatedCount: number; affectedIds: string[] }>;
 
   // Mock Date (Zaman Yolculuğu)
   setMockDate: (newDate: string) => void;
@@ -105,6 +120,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [activeScreen, setActiveScreen] = useState<ScreenType>('dashboard');
   const [themeMode, setThemeMode] = useState<ThemeMode>('light');
   const [language, setLanguageState] = useState<Language>('tr');
+  const [isDevMode, setIsDevMode] = useState<boolean>(false);
 
   const [systemDate, setSystemDateState] = useState<string>(getRealTodayDate());
   const [isMockActive, setIsMockActive] = useState<boolean>(false);
@@ -143,6 +159,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (savedLang === 'tr' || savedLang === 'en') {
           setLanguageState(savedLang);
         }
+        const savedDevMode = await getAppSetting('dev_mode_enabled');
+        if (savedDevMode === '1') {
+          setIsDevMode(true);
+        }
         await reload();
         setIsReady(true);
       } catch (e) {
@@ -159,6 +179,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const handleSetLanguage = async (lang: Language) => {
     setLanguageState(lang);
     await setAppSetting('language', lang);
+  };
+
+  const toggleDevMode = async (): Promise<boolean> => {
+    const next = !isDevMode;
+    setIsDevMode(next);
+    await setAppSetting('dev_mode_enabled', next ? '1' : '0');
+    return next;
   };
 
   useEffect(() => {
@@ -286,6 +313,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return result;
   };
 
+  const importCalendarContacts = async (
+    candidates: Parameters<typeof batchImportCalendarCandidates>[0]
+  ) => {
+    const result = await batchImportCalendarCandidates(candidates);
+    await reload();
+    return result;
+  };
+
   // --- Mock date ---
   const setMockDate = (newDate: string) => {
     setSystemDateState(newDate);
@@ -349,6 +384,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         isMockActive,
         themeMode,
         language,
+        isDevMode,
         isReady,
         dbError,
         pendingNotifications,
@@ -369,6 +405,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         deleteGiftHistoryItem,
         exportDataJSON,
         importDataJSON,
+        importCalendarContacts,
         setMockDate,
         resetMockDate,
         shiftDate,
@@ -378,6 +415,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         refreshPendingNotifications,
         cancelNotification,
         clearAllNotifications,
+        toggleDevMode,
       }}
     >
       {children}

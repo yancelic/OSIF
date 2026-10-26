@@ -2,7 +2,7 @@
   "expo": {
     "name": "OSIF",
     "slug": "osif",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -16,6 +16,18 @@
       "expo-sqlite",
       "expo-font",
       "expo-localization",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Doğum günlerini takviminizden içe aktarmak için takvim erişimi gereklidir."
+        }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Kişilerinizin doğum günlerini içeri aktarmak için rehber erişimi gereklidir."
+        }
+      ],
       [
         "react-native-android-widget",
         {
@@ -45,7 +57,12 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F2ECE1"
-      }
+      },
+      "permissions": [
+        "READ_CALENDAR",
+        "WRITE_CALENDAR",
+        "READ_CONTACTS"
+      ]
     }
   }
 }

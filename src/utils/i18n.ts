@@ -68,6 +68,10 @@ export const translations = {
     dataManagement: 'Veri Yönetimi',
     exportJson: 'JSON Dışa Aktar',
     importJson: 'JSON İçe Aktar',
+    importCalendar: 'Takvim & Rehberden İçe Aktar',
+    culturalCatalog: 'Kültürel Özel Günler Kataloğu',
+    importCalendarDesc: 'Cihaz takvimindeki ve rehberdeki doğum günlerini tara',
+    culturalCatalogDesc: 'Anneler Günü, Babalar Günü, Sevgililer Günü, Yılbaşı şablonları',
   },
   en: {
     // Navigation tabs
@@ -136,6 +140,10 @@ export const translations = {
     dataManagement: 'Data Management',
     exportJson: 'Export JSON',
     importJson: 'Import JSON',
+    importCalendar: 'Import from Calendar & Contacts',
+    culturalCatalog: 'Cultural Events Catalog',
+    importCalendarDesc: 'Scan birthdays from calendar and contacts',
+    culturalCatalogDesc: 'Mother\'s Day, Father\'s Day, Valentine\'s Day templates',
   },
 } as const;
 

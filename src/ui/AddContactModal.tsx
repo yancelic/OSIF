@@ -18,7 +18,8 @@ import { EventType, PriorityTier } from '../types/index';
 import { PressableScale } from './PressableScale';
 import { haptic } from './haptics';
 import { TIER_OPTIONS, formatDateInput, getDeviceDateConfig, parseDateInput } from './labels';
-import { fonts, getThemeColors, space, type } from './theme';
+import { fonts, getThemeColors, hairlineWidth, space, type } from './theme';
+import { CulturalCatalogModal } from './CulturalCatalogModal';
 
 interface Props {
   visible: boolean;
@@ -44,6 +45,7 @@ export const AddContactModal: React.FC<Props> = ({ visible, onClose, onCreated }
   const [formClothing, setFormClothing] = useState('');
   const [formShoes, setFormShoes] = useState('');
   const [formTargetBudget, setFormTargetBudget] = useState('');
+  const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const dateConfig = useMemo(() => getDeviceDateConfig(), []);
@@ -121,6 +123,22 @@ export const AddContactModal: React.FC<Props> = ({ visible, onClose, onCreated }
             <Text style={[type.display, { marginVertical: space.lg, color: colors.ink }]}>
               {language === 'en' ? 'For whom?' : 'Kimin için?'}
             </Text>
+
+            {/* Kültürel Özel Gün Kısayolu */}
+            <PressableScale
+              onPress={() => {
+                haptic('light');
+                setIsCatalogOpen(true);
+              }}
+              style={[styles.catalogShortcutPill, { backgroundColor: colors.bone, borderColor: colors.hairline }]}
+            >
+              <Feather name="gift" size={14} color={colors.accent} />
+              <Text style={[styles.catalogShortcutText, { color: colors.ink }]}>
+                {language === 'en'
+                  ? 'Pick from Special Days (Mother\'s Day, New Year…)'
+                  : 'Özel Gün Seç (Anneler Günü, Yılbaşı…)'}
+              </Text>
+            </PressableScale>
 
             {/* İsim */}
             <View style={{ marginTop: space.lg }}>
@@ -285,6 +303,16 @@ export const AddContactModal: React.FC<Props> = ({ visible, onClose, onCreated }
             </PressableScale>
           </ScrollView>
         </KeyboardAvoidingView>
+
+        <CulturalCatalogModal
+          visible={isCatalogOpen}
+          onClose={() => setIsCatalogOpen(false)}
+          onAdded={() => {
+            setIsCatalogOpen(false);
+            onClose();
+            if (onCreated) onCreated();
+          }}
+        />
       </SafeAreaView>
     </Modal>
   );
@@ -294,6 +322,21 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { paddingHorizontal: space.lg, paddingTop: space.xl },
   modalTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  catalogShortcutPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 6,
+    borderWidth: hairlineWidth,
+    marginBottom: space.sm,
+  },
+  catalogShortcutText: {
+    fontFamily: fonts.sans,
+    fontSize: 13,
+    fontWeight: '500',
+  },
   input: {
     fontFamily: fonts.serif,
     fontSize: 20,

@@ -1,7 +1,15 @@
+import { Platform } from 'react-native';
 import { registerRootComponent } from 'expo';
-import { registerWidgetTaskHandler } from 'react-native-android-widget';
 import App from './App';
-import { widgetTaskHandler } from './src/widgets/widgetTaskHandler';
 
-registerWidgetTaskHandler(widgetTaskHandler);
+if (Platform.OS === 'android') {
+  try {
+    const { registerWidgetTaskHandler } = require('react-native-android-widget');
+    const { widgetTaskHandler } = require('./src/widgets/widgetTaskHandler');
+    registerWidgetTaskHandler(widgetTaskHandler);
+  } catch (e) {
+    console.warn('Widget task handler register warning:', e);
+  }
+}
+
 registerRootComponent(App);
